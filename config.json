@@ -1,0 +1,16 @@
+{
+  "timezone": "Australia/Sydney",
+  "basho": "202603",
+  "users": [
+    {
+      "name": "Matt",
+      "pin": "1234",
+      "admin": true
+    },
+    {
+      "name": "Sarah",
+      "pin": "5678",
+      "admin": false
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import "tailwindcss";
+
+:root {
+  --retro-bg: #1a1a2e;
+  --retro-panel: #16213e;
+  --retro-border: #0f3460;
+  --retro-yellow: #f5c542;
+  --retro-cyan: #4cc9f0;
+  --retro-green: #4ade80;
+  --retro-red: #ef4444;
+  --retro-magenta: #e040fb;
+  --retro-white: #e8e8e8;
+}
+
+@theme inline {
+  --color-retro-bg: var(--retro-bg);
+  --color-retro-panel: var(--retro-panel);
+  --color-retro-border: var(--retro-border);
+  --color-retro-yellow: var(--retro-yellow);
+  --color-retro-cyan: var(--retro-cyan);
+  --color-retro-green: var(--retro-green);
+  --color-retro-red: var(--retro-red);
+  --color-retro-magenta: var(--retro-magenta);
+  --color-retro-white: var(--retro-white);
+}
+
+body {
+  background: var(--retro-bg);
+  color: var(--retro-white);
+  font-family: 'Press Start 2P', monospace;
+  image-rendering: pixelated;
+}
+
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+}
+
+/* Retro Panel */
+.retro-panel {
+  background: var(--retro-panel);
+  border: 3px solid var(--retro-border);
+  border-radius: 0;
+  padding: 12px;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.5);
+}
+
+.retro-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--retro-border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+/* Retro Buttons */
+.retro-btn {
+  background: var(--retro-border);
+  color: var(--retro-white);
+  border: 2px solid var(--retro-cyan);
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-transform: uppercase;
+}
+
+.retro-btn:hover:not(:disabled) {
+  background: var(--retro-cyan);
+  color: var(--retro-bg);
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+.retro-btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.retro-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.retro-btn-danger {
+  background: var(--retro-red);
+  color: white;
+  border: 2px solid #dc2626;
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+}
+
+/* Retro Inputs */
+.retro-input {
+  background: var(--retro-bg);
+  color: var(--retro-white);
+  border: 2px solid var(--retro-border);
+  padding: 4px 8px;
+  font-family: 'Press Start 2P', monospace;
+  outline: none;
+}
+
+.retro-input:focus {
+  border-color: var(--retro-cyan);
+}
+
+.retro-select {
+  background: var(--retro-bg);
+  color: var(--retro-white);
+  border: 2px solid var(--retro-border);
+  padding: 4px 8px;
+  font-family: 'Press Start 2P', monospace;
+  outline: none;
+  cursor: pointer;
+}
+
+.retro-select:focus {
+  border-color: var(--retro-cyan);
+}
+
+/* Nav tabs */
+.retro-tab {
+  padding: 8px 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--retro-white);
+  border: 2px solid transparent;
+  border-bottom: none;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.1s;
+}
+
+.retro-tab:hover {
+  color: var(--retro-cyan);
+}
+
+.retro-tab-active {
+  color: var(--retro-yellow);
+  border-color: var(--retro-border);
+  background: var(--retro-panel);
+}
+
+/* Scanline overlay (optional) */
+.scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1) 0px,
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--retro-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--retro-border);
+  border: 1px solid var(--retro-cyan);
+}
+
+/* Title animation */
+@keyframes title-glow {
+  0%, 100% { text-shadow: 0 0 4px var(--retro-yellow); }
+  50% { text-shadow: 0 0 12px var(--retro-yellow), 0 0 24px var(--retro-cyan); }
+}
+
+.title-glow {
+  animation: title-glow 2s ease-in-out infinite;
+}

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Rikishi Rumble — Spec Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --bg-primary: #0a0f1c;
+      --bg-section: #111827;
+      --bg-card: #1a2236;
+      --bg-input: #0d1424;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #00d4aa;
+      --accent-hover: #00f0c0;
+      --accent-muted: rgba(0, 212, 170, 0.15);
+      --status-approved: #22c55e;
+      --status-approved-bg: rgba(34, 197, 94, 0.1);
+      --status-changes: #eab308;
+      --status-changes-bg: rgba(234, 179, 8, 0.1);
+      --status-pending: #64748b;
+      --section-max-width: 900px;
+      --border-radius: 12px;
+      --transition: 0.3s ease;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.7;
+      min-height: 100vh;
+      padding: 2rem 1rem 6rem;
+    }
+
+    .progress-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 14px 16px;
+      background: rgba(10, 15, 28, 0.95);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .progress-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--status-pending); cursor: pointer;
+      transition: all var(--transition); border: none; padding: 0;
+    }
+    .progress-dot:hover { transform: scale(1.3); background: var(--text-secondary); }
+    .progress-dot.active { background: var(--accent); transform: scale(1.4); }
+    .progress-dot.has-comments { background: var(--status-changes); }
+
+    .section {
+      max-width: var(--section-max-width); margin: 2.5rem auto; padding: 2.5rem;
+      background: var(--bg-section); border-radius: var(--border-radius);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .section.visible { opacity: 1; transform: translateY(0); }
+    .section:first-child { margin-top: 5rem; }
+    .section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--accent); letter-spacing: -0.01em; }
+    .section h3 { font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.75rem; color: var(--text-primary); }
+
+    .commentable {
+      position: relative; padding-left: 12px;
+      border-left: 3px solid transparent;
+      transition: border-color var(--transition), background var(--transition);
+      cursor: pointer; border-radius: 0 4px 4px 0;
+    }
+    .commentable:hover { border-left-color: var(--accent-muted); background: rgba(0, 212, 170, 0.03); }
+    .commentable.has-comment { border-left-color: var(--status-changes); background: var(--status-changes-bg); }
+    .commentable.has-comment::after { content: '\1F4AC'; position: absolute; top: 2px; right: 8px; font-size: 0.75rem; opacity: 0.7; }
+
+    .comment-box {
+      margin: 8px 0 12px 12px; padding: 12px;
+      background: var(--bg-input); border: 1px solid rgba(234, 179, 8, 0.3);
+      border-radius: 8px; display: none;
+    }
+    .comment-box.open { display: block; }
+    .comment-box textarea {
+      width: 100%; min-height: 60px; padding: 8px;
+      background: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px; color: var(--text-primary);
+      font-family: var(--font-body); font-size: 0.875rem; line-height: 1.5; resize: vertical;
+    }
+    .comment-box textarea:focus { outline: none; border-color: var(--status-changes); }
+    .comment-box-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+    .comment-box-actions button {
+      padding: 4px 14px; border-radius: 6px; border: none;
+      font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all var(--transition);
+    }
+    .btn-save-comment { background: var(--status-changes); color: var(--bg-primary); }
+    .btn-save-comment:hover { filter: brightness(1.1); }
+    .btn-remove-comment { background: transparent; color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1) !important; }
+    .btn-remove-comment:hover { color: var(--text-secondary); }
+
+    .section-content p { margin: 0.75rem 0; color: var(--text-secondary); }
+    .section-content ul, .section-content ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+    .section-content li { margin: 0.4rem 0; color: var(--text-secondary); }
+    .section-content code {
+      background: var(--bg-card); padding: 2px 6px; border-radius: 4px;
+      font-family: var(--font-mono); font-size: 0.88rem; color: var(--accent);
+    }
+    .section-content pre {
+      background: var(--bg-input); padding: 1rem 1.25rem; border-radius: 8px;
+      overflow-x: auto; margin: 1rem 0; font-family: var(--font-mono);
+      font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .section-content blockquote {
+      border-left: 3px solid var(--accent); padding: 0.5rem 1rem; margin: 1rem 0;
+      background: var(--accent-muted); border-radius: 0 8px 8px 0; color: var(--text-secondary);
+    }
+    .section-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .section-content th, .section-content td { padding: 0.7rem 1rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+    .section-content th { color: var(--accent); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .section-content td { color: var(--text-secondary); }
+    .section-content tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .collapsible-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      color: var(--accent); font-weight: 600; font-size: 1.15rem; margin: 1.5rem 0 0.75rem;
+      background: none; border: none; font-family: var(--font-body);
+    }
+    .collapsible-toggle:hover { color: var(--accent-hover); }
+    .collapsible-toggle .arrow { transition: transform var(--transition); font-size: 0.75rem; }
+    .collapsible-toggle.expanded .arrow { transform: rotate(90deg); }
+    .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .collapsible-content.expanded { max-height: 2000px; }
+
+    .action-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      display: flex; justify-content: center; align-items: center; gap: 16px;
+      padding: 16px 20px;
+      background: rgba(10, 15, 28, 0.95); backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.06); z-index: 100;
+    }
+    .comment-count { font-size: 0.85rem; color: var(--text-muted); margin-right: 8px; }
+    .comment-count strong { color: var(--status-changes); }
+    .btn {
+      padding: 10px 28px; border: none; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: all var(--transition); font-family: var(--font-body);
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-revise { background: var(--status-changes); color: var(--bg-primary); }
+    .btn-revise:hover { filter: brightness(1.1); }
+    .btn-revise:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-approve { background: transparent; border: 2px solid var(--status-approved); color: var(--status-approved); }
+    .btn-approve:hover { background: var(--status-approved-bg); }
+
+    .toast {
+      position: fixed; bottom: 80px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--accent); padding: 12px 24px; border-radius: 8px;
+      font-weight: 500; font-size: 0.9rem; opacity: 0;
+      transition: all 0.3s ease; pointer-events: none; z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .section:nth-child(1) { transition-delay: 0s; }
+    .section:nth-child(2) { transition-delay: 0.08s; }
+    .section:nth-child(3) { transition-delay: 0.16s; }
+    .section:nth-child(4) { transition-delay: 0.24s; }
+    .section:nth-child(5) { transition-delay: 0.32s; }
+    .section:nth-child(6) { transition-delay: 0.4s; }
+    .section:nth-child(7) { transition-delay: 0.48s; }
+    .section:nth-child(8) { transition-delay: 0.56s; }
+    .section:nth-child(9) { transition-delay: 0.64s; }
+    .section:nth-child(10) { transition-delay: 0.72s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.1s !important; scroll-behavior: auto !important; }
+      .section { opacity: 1; transform: none; }
+    }
+    @media (max-width: 768px) {
+      body { padding: 1rem 0.5rem 5rem; }
+      .section { padding: 1.5rem; margin: 1.5rem auto; }
+      .section h2 { font-size: 1.3rem; }
+      .action-bar { flex-wrap: wrap; padding: 12px 16px; }
+      .btn { padding: 8px 20px; font-size: 0.88rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="progress-bar" role="navigation" aria-label="Section navigation">
+    <button class="progress-dot" data-index="0" title="Overview" aria-label="Go to Overview"></button>
+    <button class="progress-dot" data-index="1" title="Goals & Non-Goals" aria-label="Go to Goals & Non-Goals"></button>
+    <button class="progress-dot" data-index="2" title="Users & Access" aria-label="Go to Users & Access"></button>
+    <button class="progress-dot" data-index="3" title="Gameplay Rules" aria-label="Go to Gameplay Rules"></button>
+    <button class="progress-dot" data-index="4" title="API Integration & Data Sync" aria-label="Go to API Integration & Data Sync"></button>
+    <button class="progress-dot" data-index="5" title="Technical Architecture" aria-label="Go to Technical Architecture"></button>
+    <button class="progress-dot" data-index="6" title="Data Model" aria-label="Go to Data Model"></button>
+    <button class="progress-dot" data-index="7" title="UI/UX & Visual Theme" aria-label="Go to UI/UX & Visual Theme"></button>
+    <button class="progress-dot" data-index="8" title="Implementation Order" aria-label="Go to Implementation Order"></button>
+    <button class="progress-dot" data-index="9" title="Decisions Log" aria-label="Go to Decisions Log"></button>
+  </nav>
+
+  <main>
+
+    <!-- Section 0: Overview -->
+    <section class="section" id="section-0" data-index="0">
+      <h2>Overview</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="0-0"><strong>Rikishi Rumble</strong> is a sumo wrestling tipping competition website where a small group of friends pick a "stable" of wrestlers at the start of each 15-day basho (tournament). When a wrestler in your stable wins a bout, you earn a point. The player with the most points at the end of the basho wins.</p>
+        <p class="commentable" data-id="0-1">The app pulls real match data from the <code>sumo-api.com</code> public API, automatically calculates scores, and displays a live leaderboard. Users can make limited substitutions to their stable each evening. The visual theme is inspired by 80s Japanese 8-bit sports games, specifically the Kunio-kun / Nekketsu series.</p>
+        <p class="commentable" data-id="0-2">The app is designed for a small, trusted group of 5-15 users defined in a config file. There is no full authentication system &mdash; users select their name from a dropdown and enter a simple 4-digit PIN to make changes.</p>
+      </div>
+    </section>
+
+    <!-- Section 1: Goals & Non-Goals -->
+    <section class="section" id="section-1" data-index="1">
+      <h2>Goals &amp; Non-Goals</h2>
+      <div class="section-content">
+        <h3>Goals</h3>
+        <ul>
+          <li class="commentable" data-id="1-0">Allow users to select a stable of 5 wrestlers across defined rank tiers before each basho</li>
+          <li class="commentable" data-id="1-1">Automatically fetch match results from sumo-api.com and calculate scores</li>
+          <li class="commentable" data-id="1-2">Display a live leaderboard with daily rankings, total points, and wrestler names</li>
+          <li class="commentable" data-id="1-3">Support mid-basho wrestler substitutions (up to 2 per day within a defined window)</li>
+          <li class="commentable" data-id="1-4">Award bonus points for kimboshi (Maegashira beating a Yokozuna)</li>
+          <li class="commentable" data-id="1-5">Deliver a fun, retro 8-bit Kunio-kun visual experience</li>
+        </ul>
+        <h3>Non-Goals</h3>
+        <ul>
+          <li class="commentable" data-id="1-6">Full user authentication / account creation system</li>
+          <li class="commentable" data-id="1-7">Multi-basho / seasonal cumulative scoring &mdash; each basho is standalone</li>
+          <li class="commentable" data-id="1-8">Coverage of lower divisions (Juryo, Makushita, etc.) &mdash; Makuuchi only</li>
+          <li class="commentable" data-id="1-9">Mobile app &mdash; web-only, responsive design</li>
+          <li class="commentable" data-id="1-10">Real-time live-streaming integration or push notifications</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 2: Users & Access -->
+    <section class="section" id="section-2" data-index="2">
+      <h2>Users &amp; Access</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="2-0">Users are defined in a JSON or YAML config file managed by an admin. Each user entry contains a display name, a 4-digit PIN, and an <code>admin</code> boolean flag. Admin users can trigger manual data syncs and manage basho settings. There is no registration flow &mdash; users are added manually by the person running the app.</p>
+        <p class="commentable" data-id="2-1">To interact with the site, a user selects their name from a dropdown and enters their PIN. The PIN is a lightweight guard against accidental changes &mdash; it is not a security mechanism against determined attackers. PINs are stored in plaintext in the config file since the threat model is "trusted friends."</p>
+        <p class="commentable" data-id="2-2">The config file also defines the timezone for the substitution window (AEST) and other app-level settings like the current basho identifier.</p>
+        <blockquote class="commentable" data-id="2-3">Example config structure:
+<pre><code>{
+  "timezone": "Australia/Sydney",
+  "basho": "202603",
+  "users": [
+    { "name": "Matt", "pin": "1234", "admin": true },
+    { "name": "Sarah", "pin": "5678", "admin": false }
+  ]
+}</code></pre>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- Section 3: Gameplay Rules -->
+    <section class="section" id="section-3" data-index="3">
+      <h2>Gameplay Rules</h2>
+      <div class="section-content">
+        <h3>Stable Composition</h3>
+        <p class="commentable" data-id="3-0">Each user selects exactly one wrestler from each of the following five rank tiers. These tiers are based on the official banzuke (ranking list) for the current basho:</p>
+        <table>
+          <thead><tr><th>Tier</th><th>Ranks Included</th><th>Picks</th></tr></thead>
+          <tbody>
+            <tr class="commentable" data-id="3-1"><td>1</td><td>Yokozuna + Ozeki</td><td>1</td></tr>
+            <tr class="commentable" data-id="3-2"><td>2</td><td>Komusubi + Sekiwake</td><td>1</td></tr>
+            <tr class="commentable" data-id="3-3"><td>3</td><td>Maegashira 1&ndash;6</td><td>1</td></tr>
+            <tr class="commentable" data-id="3-4"><td>4</td><td>Maegashira 7&ndash;12</td><td>1</td></tr>
+            <tr class="commentable" data-id="3-5"><td>5</td><td>Maegashira 13&ndash;17+</td><td>1</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Scoring</h3>
+        <ul>
+          <li class="commentable" data-id="3-6"><strong>Win:</strong> Each bout won by a wrestler in your stable earns you <strong>1 point</strong>.</li>
+          <li class="commentable" data-id="3-7"><strong>Kimboshi:</strong> If a Maegashira-ranked wrestler in your stable defeats a Yokozuna, you earn <strong>1 extra bonus point</strong> (2 total for that bout: 1 win + 1 kimboshi).</li>
+          <li class="commentable" data-id="3-8">Points are cumulative across the 15-day basho. The player with the most points at the end wins.</li>
+        </ul>
+
+        <h3>Substitutions</h3>
+        <ul>
+          <li class="commentable" data-id="3-9">Each day, a user may substitute up to <strong>2 wrestlers</strong> in their stable.</li>
+          <li class="commentable" data-id="3-10">The substitution window opens at <strong>8:00 PM AEST</strong> and closes at <strong>2:00 PM AEST</strong> the following day. This ensures swaps happen after the day's results are in and before the next day's bouts begin.</li>
+          <li class="commentable" data-id="3-11">A substituted wrestler must be replaced with another wrestler from the <strong>same rank tier</strong>.</li>
+          <li class="commentable" data-id="3-12">Points earned by a swapped-out wrestler are <strong>retained</strong>. The new wrestler earns points from the next day onward.</li>
+        </ul>
+
+        <h3>Wrestler Withdrawal (Kyujo)</h3>
+        <p class="commentable" data-id="3-13">If a wrestler in your stable withdraws from the tournament (kyujo), their remaining bouts are recorded as losses (fusenpai). No special handling occurs &mdash; the user can use their normal substitutions to swap the injured wrestler out. This adds a strategic element: do you burn a substitution on a withdrawn wrestler or keep your swaps for other tactical changes?</p>
+      </div>
+    </section>
+
+    <!-- Section 4: API Integration & Data Sync -->
+    <section class="section" id="section-4" data-index="4">
+      <h2>API Integration &amp; Data Sync</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="4-0">All tournament data is sourced from the public API at <code>https://www.sumo-api.com/api/</code>. The API is free, requires no authentication, and provides endpoints for wrestlers (rikishi), rankings (banzuke), and match results (torikumi).</p>
+
+        <h3>Data Sync Strategy</h3>
+        <ul>
+          <li class="commentable" data-id="4-1"><strong>Automated polling:</strong> Two cron jobs run daily at <strong>7:30 PM</strong> and <strong>8:00 PM AEST</strong> to fetch the day's match results and update scores. The dual schedule provides redundancy &mdash; the first run catches most results, the second picks up any stragglers or late updates.</li>
+          <li class="commentable" data-id="4-2"><strong>Manual override:</strong> An admin can trigger a manual data sync at any time via a button in the UI. This is useful if the API was temporarily down during the scheduled poll or if results need to be refreshed.</li>
+          <li class="commentable" data-id="4-3"><strong>Caching:</strong> Banzuke (ranking) data is fetched once at the start of each basho and cached locally. It does not change mid-tournament. Match results are cached after each daily sync.</li>
+        </ul>
+
+        <h3>Kimboshi Detection</h3>
+        <p class="commentable" data-id="4-4">The API does not explicitly flag kimboshi. To detect them, the app compares the winner's rank from the cached banzuke against the loser's rank. A kimboshi is recorded when: (1) the winner holds a Maegashira rank, AND (2) the loser holds a Yokozuna rank. This check uses the banzuke as published at the start of the basho &mdash; rank does not change mid-tournament.</p>
+
+        <h3>Error Handling</h3>
+        <ul>
+          <li class="commentable" data-id="4-5">If the API is unreachable during a scheduled poll, retry up to 3 times with exponential backoff. If all retries fail, log the error and mark the day's results as "pending" on the leaderboard.</li>
+          <li class="commentable" data-id="4-6">If match data appears incomplete (fewer bouts than expected), flag it for admin review rather than silently calculating partial scores.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 5: Technical Architecture -->
+    <section class="section" id="section-5" data-index="5">
+      <h2>Technical Architecture</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="5-0">The app is built as a <strong>Next.js (TypeScript)</strong> full-stack application with <strong>SQLite</strong> for data persistence. It is self-hosted on the user's own server or VPS.</p>
+
+        <table>
+          <thead><tr><th>Layer</th><th>Technology</th><th>Rationale</th></tr></thead>
+          <tbody>
+            <tr class="commentable" data-id="5-1"><td>Frontend</td><td>Next.js (React, TypeScript)</td><td>Component-based UI, SSR for fast loads, single project with API routes</td></tr>
+            <tr class="commentable" data-id="5-2"><td>Backend / API</td><td>Next.js API Routes</td><td>Co-located with frontend, no separate server needed</td></tr>
+            <tr class="commentable" data-id="5-3"><td>Database</td><td>SQLite (via better-sqlite3 or Drizzle ORM)</td><td>Zero-config, file-based, perfect for small user base. No separate DB server.</td></tr>
+            <tr class="commentable" data-id="5-4"><td>Scheduling</td><td>node-cron (in-process)</td><td>Runs daily poll job. Simple, no external scheduler needed for self-hosted.</td></tr>
+            <tr class="commentable" data-id="5-5"><td>Hosting</td><td>Self-hosted (VPS / home server)</td><td>Full control, SQLite-friendly, no cloud costs beyond the server itself.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Key Architectural Decisions</h3>
+        <ul>
+          <li class="commentable" data-id="5-6">Single Next.js project for both frontend and backend &mdash; simplifies deployment and development.</li>
+          <li class="commentable" data-id="5-7">SQLite chosen over PostgreSQL because the user base is small (5-15 people), writes are infrequent, and it eliminates the need for a database server.</li>
+          <li class="commentable" data-id="5-8">In-process cron via <code>node-cron</code> rather than system crontab, keeping all logic within the Node.js process for portability.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 6: Data Model -->
+    <section class="section" id="section-6" data-index="6">
+      <h2>Data Model</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="6-0">The SQLite database stores user stables, match results (cached from the API), and computed scores. The config file remains the source of truth for user identity and PINs.</p>
+        <pre class="commentable" data-id="6-1"><code>-- Core tables
+
+users (from config, mirrored at startup)
+  id          TEXT PRIMARY KEY
+  name        TEXT NOT NULL
+
+basho
+  id          TEXT PRIMARY KEY   -- e.g. "202603"
+  start_date  TEXT
+  status      TEXT               -- "upcoming", "active", "completed"
+
+stables
+  id          INTEGER PRIMARY KEY
+  basho_id    TEXT REFERENCES basho(id)
+  user_id     TEXT REFERENCES users(id)
+  tier        INTEGER            -- 1-5
+  rikishi_id  INTEGER
+  selected_at TEXT               -- ISO timestamp
+  UNIQUE(basho_id, user_id, tier)
+
+substitutions
+  id          INTEGER PRIMARY KEY
+  basho_id    TEXT
+  user_id     TEXT
+  day         INTEGER            -- tournament day (1-15)
+  old_rikishi INTEGER
+  new_rikishi INTEGER
+  tier        INTEGER
+  created_at  TEXT
+
+-- Cached API data
+
+rikishi_cache
+  id          INTEGER PRIMARY KEY
+  name        TEXT
+  rank        TEXT               -- e.g. "M3e", "Y1e", "O2w"
+  basho_id    TEXT
+
+bout_results
+  id          INTEGER PRIMARY KEY
+  basho_id    TEXT
+  day         INTEGER
+  winner_id   INTEGER
+  loser_id    INTEGER
+  kimarite    TEXT               -- winning technique
+  is_kimboshi BOOLEAN DEFAULT 0
+
+-- Computed scores
+
+daily_scores
+  basho_id    TEXT
+  user_id     TEXT
+  day         INTEGER
+  points      INTEGER
+  kimboshi    INTEGER
+  PRIMARY KEY(basho_id, user_id, day)</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 7: UI/UX & Visual Theme -->
+    <section class="section" id="section-7" data-index="7">
+      <h2>UI/UX &amp; Visual Theme</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="7-0">The visual design is inspired by <strong>Kunio-kun / Nekketsu</strong> series games (River City Ransom, Nekketsu Soccer). This means: chibi-style character representations, bold pixel fonts, vibrant sports-game color palettes, and an energetic, competitive atmosphere.</p>
+
+        <h3>Key UI Elements</h3>
+        <ul>
+          <li class="commentable" data-id="7-1"><strong>Leaderboard page (home):</strong> Styled like a sports game scoreboard. Ranked table with user names, total points, today's points, and their 5 wrestler names. The leading player is highlighted with a visual flourish.</li>
+          <li class="commentable" data-id="7-2"><strong>Stable selection page:</strong> 5 tier rows, each showing available wrestlers as selectable pixel-art cards. Wrestlers displayed with name and rank. Drag-and-drop or click to select.</li>
+          <li class="commentable" data-id="7-3"><strong>Substitution page:</strong> Shows current stable with swap buttons. Countdown timer for the substitution window. Disabled outside the allowed hours.</li>
+          <li class="commentable" data-id="7-4"><strong>User selector:</strong> Dropdown with user names + PIN input field. No separate login page &mdash; integrated into the header/nav bar.</li>
+        </ul>
+
+        <h3>Design Direction</h3>
+        <ul>
+          <li class="commentable" data-id="7-5">Pixel art fonts (e.g., Press Start 2P or similar retro font)</li>
+          <li class="commentable" data-id="7-6">NES/Famicom-era color palette: limited, high-contrast colors</li>
+          <li class="commentable" data-id="7-7">Chunky borders, tile-based layouts, and subtle scanline or CRT effects (optional, togglable)</li>
+          <li class="commentable" data-id="7-8">Simple sprite-style icons for wins, losses, kimboshi, and kyujo</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 8: Implementation Order -->
+    <section class="section" id="section-8" data-index="8">
+      <h2>Implementation Order</h2>
+      <div class="section-content">
+        <p class="commentable" data-id="8-0">Components are ordered by dependency chain. Each step builds on the previous one.</p>
+        <ol>
+          <li class="commentable" data-id="8-1"><strong>Project scaffolding:</strong> Next.js + TypeScript setup, SQLite integration, config file loading, dev tooling.</li>
+          <li class="commentable" data-id="8-2"><strong>API client layer:</strong> Wrapper for sumo-api.com endpoints (rikishi, banzuke, torikumi). Response types, error handling, caching logic.</li>
+          <li class="commentable" data-id="8-3"><strong>Data model &amp; migrations:</strong> SQLite schema creation, seed scripts, rikishi cache population from API.</li>
+          <li class="commentable" data-id="8-4"><strong>User config &amp; PIN auth:</strong> Config file parser, user dropdown + PIN validation API route.</li>
+          <li class="commentable" data-id="8-5"><strong>Stable selection:</strong> UI for picking wrestlers per tier, API routes for saving/loading stables, tier validation.</li>
+          <li class="commentable" data-id="8-6"><strong>Score calculation engine:</strong> Match result processing, kimboshi detection, daily score aggregation.</li>
+          <li class="commentable" data-id="8-7"><strong>Automated data sync:</strong> node-cron scheduled polling, manual sync admin endpoint, retry logic.</li>
+          <li class="commentable" data-id="8-8"><strong>Leaderboard:</strong> Ranked scoreboard page, today's points, total points, wrestler names per user.</li>
+          <li class="commentable" data-id="8-9"><strong>Substitution system:</strong> Substitution UI, time window enforcement (AEST), 2-per-day limit, same-tier validation.</li>
+          <li class="commentable" data-id="8-10"><strong>Visual theme &amp; polish:</strong> Kunio-kun pixel art styling, retro fonts, color palette, animations, responsive design.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Section 9: Decisions Log -->
+    <section class="section" id="section-9" data-index="9">
+      <h2>Decisions Log</h2>
+      <div class="section-content">
+        <button class="collapsible-toggle" onclick="toggleCollapse(this)">
+          <span class="arrow">&#9654;</span> Show Decisions (10 entries)
+        </button>
+        <div class="collapsible-content">
+          <table>
+            <thead><tr><th>#</th><th>Topic</th><th>Decision</th><th>Rationale</th></tr></thead>
+            <tbody>
+              <tr class="commentable" data-id="9-0"><td>1</td><td>User scope</td><td>Small trusted group (5-15)</td><td>No need for full auth; config-file based users with dropdown selection</td></tr>
+              <tr class="commentable" data-id="9-1"><td>2</td><td>Rank tier overlap</td><td>M7-12 / M13-17+ (clean split)</td><td>Fixed the M12 overlap from original requirements</td></tr>
+              <tr class="commentable" data-id="9-2"><td>3</td><td>Substitution points</td><td>Keep accumulated points</td><td>Simplest and most intuitive; no penalty for swapping</td></tr>
+              <tr class="commentable" data-id="9-3"><td>4</td><td>Timezone</td><td>AEST (Australia/Sydney)</td><td>User group is Australian; matches finish ~8pm AEST</td></tr>
+              <tr class="commentable" data-id="9-4"><td>5</td><td>Kimboshi definition</td><td>Strict: Maegashira beats Yokozuna only</td><td>Traditional definition; rare and exciting when it happens</td></tr>
+              <tr class="commentable" data-id="9-5"><td>6</td><td>Competition scope</td><td>Single basho at a time</td><td>Clean reset each tournament; no seasonal tracking</td></tr>
+              <tr class="commentable" data-id="9-6"><td>7</td><td>Data sync strategy</td><td>Hybrid: auto-poll + manual override</td><td>Best of both; daily cron + admin button for ad-hoc syncs</td></tr>
+              <tr class="commentable" data-id="9-7"><td>8</td><td>Kyujo handling</td><td>Treat as normal losses</td><td>No special handling; user can use substitutions strategically</td></tr>
+              <tr class="commentable" data-id="9-8"><td>9</td><td>Tech stack</td><td>Next.js + TypeScript + SQLite</td><td>Single project, lightweight, perfect for self-hosted small group app</td></tr>
+              <tr class="commentable" data-id="9-9"><td>10</td><td>User guard</td><td>Simple 4-digit PIN per user</td><td>Prevents accidental changes; not meant as real security</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="action-bar">
+    <span class="comment-count"><strong id="comment-count">0</strong> comments</span>
+    <button class="btn btn-revise" id="btn-revise" onclick="revise()" disabled>Revise</button>
+    <button class="btn btn-approve" onclick="approve()">Approved</button>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const comments = new Map();
+    const sections = document.querySelectorAll('.section');
+    const dots = document.querySelectorAll('.progress-dot');
+    let currentSection = 0;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+        if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+          const idx = [...sections].indexOf(entry.target);
+          if (idx !== -1) { currentSection = idx; updateDots(); }
+        }
+      });
+    }, { threshold: [0, 0.3] });
+    sections.forEach(s => observer.observe(s));
+
+    function updateDots() {
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSection));
+    }
+
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => sections[i].scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentSection < sections.length - 1) sections[currentSection + 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentSection > 0) sections[currentSection - 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    document.querySelectorAll('.commentable').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = el.dataset.id;
+        let box = el.nextElementSibling;
+        if (!box || !box.classList.contains('comment-box')) {
+          box = document.createElement('div');
+          box.className = 'comment-box';
+          box.innerHTML = `
+            <textarea placeholder="What should change here?">${comments.has(id) ? comments.get(id).text : ''}</textarea>
+            <div class="comment-box-actions">
+              <button class="btn-remove-comment" onclick="removeComment('${id}', this)">Remove</button>
+              <button class="btn-save-comment" onclick="saveComment('${id}', this)">Save</button>
+            </div>
+          `;
+          el.after(box);
+        }
+        box.classList.toggle('open');
+        if (box.classList.contains('open')) box.querySelector('textarea').focus();
+      });
+    });
+
+    function saveComment(id, btnEl) {
+      const box = btnEl.closest('.comment-box');
+      const textarea = box.querySelector('textarea');
+      const text = textarea.value.trim();
+      if (!text) return removeComment(id, btnEl);
+      const el = document.querySelector(`[data-id="${id}"]`);
+      const snippet = el.textContent.substring(0, 80).trim();
+      comments.set(id, { text, snippet });
+      el.classList.add('has-comment');
+      box.classList.remove('open');
+      updateCommentCount();
+      updateDotComments();
+    }
+
+    function removeComment(id, btnEl) {
+      const box = btnEl.closest('.comment-box');
+      const el = document.querySelector(`[data-id="${id}"]`);
+      comments.delete(id);
+      el.classList.remove('has-comment');
+      box.classList.remove('open');
+      box.querySelector('textarea').value = '';
+      updateCommentCount();
+      updateDotComments();
+    }
+
+    function updateCommentCount() {
+      const count = comments.size;
+      document.getElementById('comment-count').textContent = count;
+      document.getElementById('btn-revise').disabled = count === 0;
+    }
+
+    function updateDotComments() {
+      dots.forEach((dot, i) => {
+        const section = sections[i];
+        const sectionId = section.dataset.index;
+        const hasComments = [...comments.keys()].some(k => k.startsWith(sectionId + '-'));
+        dot.classList.toggle('has-comments', hasComments);
+      });
+    }
+
+    function toggleCollapse(btn) {
+      btn.classList.toggle('expanded');
+      btn.nextElementSibling.classList.toggle('expanded');
+    }
+
+    function collectFeedback() {
+      const sectionMap = {};
+      comments.forEach((val, key) => {
+        const sectionIdx = key.split('-')[0];
+        const section = document.getElementById('section-' + sectionIdx);
+        const title = section ? section.querySelector('h2').textContent : 'Unknown';
+        if (!sectionMap[title]) sectionMap[title] = [];
+        sectionMap[title].push(val);
+      });
+      let feedback = '## Spec Feedback\n\n';
+      document.querySelectorAll('.section h2').forEach(h2 => {
+        const title = h2.textContent;
+        if (sectionMap[title]) {
+          feedback += `### Section: ${title}\n`;
+          sectionMap[title].forEach(c => {
+            feedback += `- "${c.text}" (on: "${c.snippet}...")\n`;
+          });
+          feedback += '\n';
+        }
+      });
+      return feedback;
+    }
+
+    function revise() {
+      const feedback = collectFeedback();
+      copyToClipboard(feedback, 'Comments copied! Paste in Claude Code to revise.');
+    }
+
+    function approve() {
+      copyToClipboard('All sections approved — generate final spec.', '"Approved" copied! Paste in Claude Code.');
+    }
+
+    function copyToClipboard(text, message) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(message)).catch(() => fallbackCopy(text, message));
+      } else {
+        fallbackCopy(text, message);
+      }
+    }
+
+    function fallbackCopy(text, message) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast(message); }
+      catch { showToast('Copy failed — please select and copy manually.'); }
+      document.body.removeChild(ta);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    updateDots();
+    updateCommentCount();
+  </script>
+</body>
+</html>

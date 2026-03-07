@@ -1,0 +1,40 @@
+{
+  "specName": "Rikishi Rumble",
+  "specFile": "SPEC.md",
+  "timestamp": "2026-03-07",
+  "previewGenerated": true,
+  "feedbackRounds": [
+    {
+      "round": 1,
+      "changes": [
+        "Added admin boolean to user config",
+        "Changed substitution window open time from 7pm to 8pm AEST",
+        "Changed cron schedule to 7:30pm and 8:00pm AEST"
+      ]
+    }
+  ],
+  "coverageMap": {
+    "Problem": "done",
+    "Users & Auth": "done",
+    "Gameplay Rules": "done",
+    "API & Data": "done",
+    "Tech Stack": "done",
+    "UI/UX & Theme": "done",
+    "Deployment": "done",
+    "App Name": "done"
+  },
+  "decisions": [
+    { "topic": "User scope", "decision": "Small trusted group (5-15)" },
+    { "topic": "Rank tier overlap", "decision": "M7-12 / M13-17+ (clean split)" },
+    { "topic": "Substitution points", "decision": "Keep accumulated points" },
+    { "topic": "Timezone", "decision": "AEST (Australia/Sydney)" },
+    { "topic": "Kimboshi definition", "decision": "Strict: Maegashira beats Yokozuna only" },
+    { "topic": "Competition scope", "decision": "Single basho at a time" },
+    { "topic": "Data sync strategy", "decision": "Hybrid: auto-poll (7:30pm + 8pm) + manual override" },
+    { "topic": "Kyujo handling", "decision": "Treat as normal losses" },
+    { "topic": "Tech stack", "decision": "Next.js + TypeScript + SQLite, self-hosted" },
+    { "topic": "User guard", "decision": "Simple 4-digit PIN per user" },
+    { "topic": "Admin role", "decision": "Boolean flag in config per user" },
+    { "topic": "Substitution window", "decision": "8:00 PM - 2:00 PM AEST" }
+  ]
+}
