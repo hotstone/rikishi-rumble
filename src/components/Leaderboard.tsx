@@ -85,12 +85,21 @@ export function Leaderboard() {
             <div className="col-span-3 text-right">KIMBOSHI</div>
           </div>
 
-          {leaderboard.map((entry, idx) => (
+          {leaderboard.map((entry, idx) => {
+            // Dense ranking: same points = same rank
+            const rank = idx === 0
+              ? 1
+              : entry.total_points === leaderboard[idx - 1].total_points
+                ? leaderboard.findIndex((e) => e.total_points === entry.total_points) + 1
+                : idx + 1;
+            const isFirst = rank === 1 && entry.total_points > 0;
+
+            return (
             <div key={entry.user_id}>
               {/* Desktop row */}
               <div
                 className={`hidden sm:grid grid-cols-12 gap-1 px-2 py-2 cursor-pointer transition-colors ${
-                  idx === 0 && entry.total_points > 0
+                  isFirst
                     ? "bg-retro-yellow/10 border-2 border-retro-yellow"
                     : "border-2 border-transparent hover:border-retro-cyan/30"
                 }`}
@@ -101,10 +110,10 @@ export function Leaderboard() {
                 }
               >
                 <div className="col-span-1 font-pixel text-xs text-retro-yellow">
-                  {idx + 1}
+                  {rank}
                 </div>
                 <div className="col-span-4 font-pixel text-xs text-white">
-                  {idx === 0 && entry.total_points > 0 && "★ "}
+                  {isFirst && "★ "}
                   {entry.user_name}
                 </div>
                 <div className="col-span-2 text-right font-pixel text-xs text-retro-green">
@@ -121,7 +130,7 @@ export function Leaderboard() {
               {/* Mobile card */}
               <div
                 className={`sm:hidden px-3 py-2 cursor-pointer transition-colors ${
-                  idx === 0 && entry.total_points > 0
+                  isFirst
                     ? "bg-retro-yellow/10 border-2 border-retro-yellow"
                     : "border-2 border-transparent hover:border-retro-cyan/30"
                 }`}
@@ -133,9 +142,9 @@ export function Leaderboard() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-pixel text-xs text-retro-yellow">{idx + 1}</span>
+                    <span className="font-pixel text-xs text-retro-yellow">{rank}</span>
                     <span className="font-pixel text-xs text-white">
-                      {idx === 0 && entry.total_points > 0 && "★ "}
+                      {isFirst && "★ "}
                       {entry.user_name}
                     </span>
                   </div>
@@ -191,7 +200,8 @@ export function Leaderboard() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
