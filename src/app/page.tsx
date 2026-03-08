@@ -9,6 +9,12 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { BashoPage } from "@/components/BashoPage";
 
 type Tab = "leaderboard" | "basho" | "stable" | "substitution" | "admin";
+const VALID_TABS = new Set<Tab>(["leaderboard", "basho", "stable", "substitution", "admin"]);
+
+function tabFromHash(): Tab {
+  const hash = window.location.hash.slice(1);
+  return VALID_TABS.has(hash as Tab) ? (hash as Tab) : "leaderboard";
+}
 
 export default function Home() {
   const { session, login, logout } = useAuth();
@@ -17,6 +23,13 @@ export default function Home() {
   const [scanlines, setScanlines] = useState(false);
   const [basho, setBasho] = useState("");
   const [currentDay, setCurrentDay] = useState(0);
+
+  useEffect(() => {
+    setActiveTab(tabFromHash());
+    const onPopState = () => setActiveTab(tabFromHash());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("rikishi-pin");
@@ -29,6 +42,11 @@ export default function Home() {
       setCurrentDay(lbData.currentDay || 0);
     });
   }, []);
+
+  const navigateTo = (tab: Tab) => {
+    window.history.pushState(null, "", `#${tab}`);
+    setActiveTab(tab);
+  };
 
   const handleLogin = (user: { userId: string; name: string; admin: boolean }) => {
     login(user);
@@ -43,7 +61,7 @@ export default function Home() {
     logout();
     setPin("");
     localStorage.removeItem("rikishi-pin");
-    setActiveTab("leaderboard");
+    navigateTo("leaderboard");
   };
 
   const tabs: { id: Tab; label: string; requiresAuth?: boolean; requiresAdmin?: boolean }[] = [
@@ -92,7 +110,7 @@ export default function Home() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => navigateTo(tab.id)}
                   className={`retro-tab ${
                     activeTab === tab.id ? "retro-tab-active" : ""
                   }`}
