@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface UserOption {
   id: string;
@@ -14,7 +14,20 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
   const [selectedUser, setSelectedUser] = useState("");
   const [newPin, setNewPin] = useState("");
   const [pinMessage, setPinMessage] = useState("");
+  const [autoSyncDay, setAutoSyncDay] = useState<number | null>(null);
+  const autoSyncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const stopAutoSync = useCallback(() => {
+    if (autoSyncInterval.current) {
+      clearInterval(autoSyncInterval.current);
+      autoSyncInterval.current = null;
+    }
+    setAutoSyncDay(null);
+  }, []);
+
+  useEffect(() => {
+    return () => stopAutoSync();
+  }, [stopAutoSync]);
 
   useEffect(() => {
     fetch("/api/auth")
@@ -22,9 +35,41 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
       .then((data) => setUsers(data.users));
   }, []);
 
+  const runDaySync = useCallback(async (day: number): Promise<boolean> => {
+    const res = await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userName, action: "day", day }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setMessage(data.message);
+      return !!data.pending;
+    } else {
+      setMessage(data.error || "SYNC FAILED");
+      return false;
+    }
+  }, [userName]);
+
   const handleSync = async (action: string, day?: number) => {
+    stopAutoSync();
     setSyncing(true);
     setMessage("");
+
+    if (action === "day" && day) {
+      const pending = await runDaySync(day);
+      setSyncing(false);
+      if (pending) {
+        setAutoSyncDay(day);
+        autoSyncInterval.current = setInterval(async () => {
+          const stillPending = await runDaySync(day);
+          if (!stillPending) {
+            stopAutoSync();
+          }
+        }, 3 * 60 * 1000);
+      }
+      return;
+    }
 
     const res = await fetch("/api/sync", {
       method: "POST",
@@ -77,6 +122,19 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
           ))}
         </div>
 
+        {autoSyncDay && (
+          <div className="flex items-center gap-2">
+            <p className="font-pixel text-xs text-retro-yellow animate-pulse">
+              AUTO-SYNCING DAY {autoSyncDay} EVERY 3 MIN...
+            </p>
+            <button
+              onClick={stopAutoSync}
+              className="retro-btn text-xs px-2 py-0.5"
+            >
+              STOP
+            </button>
+          </div>
+        )}
         {message && (
           <p className="font-pixel text-xs text-retro-green">{message}</p>
         )}
