@@ -57,6 +57,7 @@ export function parseRank(rank: string): { base: string; number: number; short: 
     sekiwake: "S",
     komusubi: "K",
     maegashira: "M",
+    juryo: "J",
   };
 
   const lower = rank.toLowerCase();
@@ -70,7 +71,7 @@ export function parseRank(rank: string): { base: string; number: number; short: 
   }
 
   // Fallback: try abbreviated format (Y1e, M3w, etc.)
-  const abbrMatch = rank.match(/^([YOSKM])(\d+)?/);
+  const abbrMatch = rank.match(/^([YOSKMJ])(\d+)?/);
   if (abbrMatch) {
     return {
       base: abbrMatch[1],
