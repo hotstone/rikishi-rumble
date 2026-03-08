@@ -54,7 +54,7 @@ export function BashoPage() {
 
     if (!inProgress) return;
 
-    const interval = setInterval(fetchData, 3 * 60 * 1000);
+    const interval = setInterval(fetchData,  60 * 1000);
     return () => clearInterval(interval);
   }, [data, fetchData]);
 
