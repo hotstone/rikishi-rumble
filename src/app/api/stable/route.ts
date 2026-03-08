@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getConfig, validatePin } from "@/lib/config";
-import { getRankTier } from "@/lib/sumo-api";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");

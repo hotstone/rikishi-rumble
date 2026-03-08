@@ -66,42 +66,47 @@ export async function syncDay(
     "DELETE FROM bout_results WHERE basho_id = ? AND day = ?"
   );
   const insertBout = db.prepare(
-    "INSERT INTO bout_results (basho_id, day, winner_id, loser_id, kimarite, is_kimboshi) VALUES (?, ?, ?, ?, ?, ?)"
+    "INSERT INTO bout_results (basho_id, day, east_id, west_id, winner_id, loser_id, kimarite, is_kimboshi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
   );
 
   const transaction = db.transaction(() => {
     deletePrevious.run(bashoId, day);
 
     for (const match of matches) {
-      if (!match.winnerId) continue;
-
-      const loserId =
-        match.winnerId === match.eastId ? match.westId : match.eastId;
-
-      // Detect kimboshi
-      const winnerRikishi = getRikishi.get(match.winnerId, bashoId) as
-        | { rank: string }
-        | undefined;
-      const loserRikishi = getRikishi.get(loserId, bashoId) as
-        | { rank: string }
-        | undefined;
-
+      let winnerId: number | null = null;
+      let loserId: number | null = null;
       let isKimboshi = 0;
-      if (winnerRikishi && loserRikishi) {
-        if (
-          isMaegashira(winnerRikishi.rank) &&
-          isYokozuna(loserRikishi.rank)
-        ) {
-          isKimboshi = 1;
+
+      if (match.winnerId) {
+        winnerId = match.winnerId;
+        loserId = match.winnerId === match.eastId ? match.westId : match.eastId;
+
+        // Detect kimboshi
+        const winnerRikishi = getRikishi.get(winnerId, bashoId) as
+          | { rank: string }
+          | undefined;
+        const loserRikishi = getRikishi.get(loserId, bashoId) as
+          | { rank: string }
+          | undefined;
+
+        if (winnerRikishi && loserRikishi) {
+          if (
+            isMaegashira(winnerRikishi.rank) &&
+            isYokozuna(loserRikishi.rank)
+          ) {
+            isKimboshi = 1;
+          }
         }
       }
 
       insertBout.run(
         bashoId,
         day,
-        match.winnerId,
+        match.eastId,
+        match.westId,
+        winnerId,
         loserId,
-        match.kimarite,
+        match.kimarite || null,
         isKimboshi
       );
     }

@@ -10,13 +10,6 @@ interface Wrestler {
   tier: number;
 }
 
-interface StableEntry {
-  tier: number;
-  rikishi_id: number;
-  name: string;
-  rank: string;
-}
-
 function useCountdown(targetDate: Date | null) {
   const [timeLeft, setTimeLeft] = useState("");
   const [locked, setLocked] = useState(false);
@@ -66,7 +59,6 @@ export function StableSelector({
   pin: string;
 }) {
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
-  const [currentStable, setCurrentStable] = useState<StableEntry[]>([]);
   const [picks, setPicks] = useState<Record<number, number>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -81,7 +73,6 @@ export function StableSelector({
       fetch("/api/basho").then((r) => r.json()),
     ]).then(([wrestlerData, stableData, bashoData]) => {
       setWrestlers(wrestlerData.wrestlers);
-      setCurrentStable(stableData.stable);
 
       if (bashoData.stableLockDate) {
         setLockDate(new Date(bashoData.stableLockDate));

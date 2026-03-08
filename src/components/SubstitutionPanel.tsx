@@ -8,9 +8,6 @@ function useSubWindowCountdown() {
 
   useEffect(() => {
     function update() {
-      let hour: number;
-      let minute: number;
-
       // Get current time in AEST
       const now = new Date();
       const aestStr = now.toLocaleString("en-US", {
@@ -21,7 +18,7 @@ function useSubWindowCountdown() {
       });
       const [datePart, timePart] = aestStr.split(", ");
       const [month, day, year] = datePart.split("/").map(Number);
-      [hour, minute] = timePart.split(":").map(Number);
+      const [hour] = timePart.split(":").map(Number);
 
       const open = hour >= 20 || hour < 14;
       setIsOpen(open);
@@ -129,9 +126,8 @@ export function SubstitutionPanel({
     setCurrentDay(lbRes.currentDay || 1);
   }, [userId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadData(); }, [loadData]);
 
   const { timeLeft, isOpen: windowOpen } = useSubWindowCountdown();
   const todaySwapCount = substitutions.filter((s) => s.day === currentDay).length;

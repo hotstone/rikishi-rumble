@@ -13,12 +13,15 @@ type Tab = "leaderboard" | "basho" | "stable" | "substitution" | "admin";
 export default function Home() {
   const { session, login, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("leaderboard");
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("rikishi-pin") || "";
+  });
   const [scanlines, setScanlines] = useState(false);
+  const [basho, setBasho] = useState("");
 
   useEffect(() => {
-    const stored = localStorage.getItem("rikishi-pin");
-    if (stored) setPin(stored);
+    fetch("/api/basho").then((r) => r.json()).then((d) => setBasho(d.basho || ""));
   }, []);
 
   const handleLogin = (user: { userId: string; name: string; admin: boolean }) => {
@@ -50,9 +53,14 @@ export default function Home() {
       <header className="border-b-3 border-retro-border bg-retro-panel">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="font-pixel text-sm sm:text-lg text-retro-yellow title-glow">
-              RIKISHI RUMBLE
-            </h1>
+            <div>
+              <h1 className="font-pixel text-sm sm:text-lg text-retro-yellow title-glow">
+                RIKISHI RUMBLE
+              </h1>
+              {basho && (
+                <p className="font-pixel text-xs text-retro-cyan">{basho}</p>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setScanlines(!scanlines)}

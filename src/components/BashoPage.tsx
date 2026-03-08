@@ -3,16 +3,17 @@
 import { useState, useEffect } from "react";
 
 interface Bout {
-  winner_id: number;
-  loser_id: number;
-  winner_name: string;
-  winner_rank: string;
-  loser_name: string;
-  loser_rank: string;
-  kimarite: string;
+  east_id: number;
+  east_name: string;
+  east_rank: string;
+  west_id: number;
+  west_name: string;
+  west_rank: string;
+  winner_id: number | null;
+  kimarite: string | null;
   is_kimboshi: boolean;
-  winner_owners: string[];
-  loser_owners: string[];
+  east_owners: string[];
+  west_owners: string[];
 }
 
 interface BashoData {
@@ -50,7 +51,7 @@ export function BashoPage() {
       <div className="retro-panel-header flex-col sm:flex-row gap-1">
         <h2 className="font-pixel text-sm">BASHO</h2>
         <span className="font-pixel text-xs text-retro-cyan">
-          {basho} - DAY {currentDay || "?"}
+          {basho}{currentDay > 0 && ` - DAY ${currentDay}`}
         </span>
       </div>
 
@@ -59,6 +60,7 @@ export function BashoPage() {
           const hasBouts = syncedSet.has(day);
           const bouts = boutsByDay[day] || [];
           const isExpanded = hasBouts && expandedDays.has(day);
+          const decidedCount = bouts.filter((b) => b.winner_id).length;
 
           return (
             <div key={day}>
@@ -93,7 +95,9 @@ export function BashoPage() {
                   </span>
                   <span className="font-pixel text-xs text-gray-500">
                     {hasBouts
-                      ? `${bouts.length} BOUTS`
+                      ? decidedCount === bouts.length
+                        ? `${bouts.length} BOUTS`
+                        : `${decidedCount}/${bouts.length} DECIDED`
                       : "NO BOUTS CONFIRMED YET"}
                   </span>
                 </div>
@@ -115,16 +119,21 @@ export function BashoPage() {
 }
 
 function BoutRow({ bout }: { bout: Bout }) {
+  const decided = bout.winner_id !== null;
+  const eastWon = bout.winner_id === bout.east_id;
+  const westWon = bout.winner_id === bout.west_id;
+
   return (
     <div className="px-2 sm:px-3 py-2">
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* East (winner or loser) side */}
         <WrestlerBox
-          name={bout.winner_name}
-          rank={bout.winner_rank}
-          isWinner={true}
-          owners={bout.winner_owners}
-          isKimboshi={bout.is_kimboshi}
+          name={bout.east_name}
+          rank={bout.east_rank}
+
+          isWinner={eastWon}
+          decided={decided}
+          owners={bout.east_owners}
+          isKimboshi={eastWon && bout.is_kimboshi}
         />
 
         <div className="shrink-0 text-center px-1">
@@ -137,11 +146,13 @@ function BoutRow({ bout }: { bout: Bout }) {
         </div>
 
         <WrestlerBox
-          name={bout.loser_name}
-          rank={bout.loser_rank}
-          isWinner={false}
-          owners={bout.loser_owners}
-          isKimboshi={false}
+          name={bout.west_name}
+          rank={bout.west_rank}
+
+          isWinner={westWon}
+          decided={decided}
+          owners={bout.west_owners}
+          isKimboshi={westWon && bout.is_kimboshi}
         />
       </div>
     </div>
@@ -152,23 +163,31 @@ function WrestlerBox({
   name,
   rank,
   isWinner,
+  decided,
   owners,
   isKimboshi,
 }: {
   name: string;
   rank: string;
   isWinner: boolean;
+  decided: boolean;
   owners: string[];
   isKimboshi: boolean;
 }) {
+  const borderClass = isWinner
+    ? "border-retro-green/60 bg-retro-green/10"
+    : decided
+      ? "border-gray-700 bg-transparent"
+      : "border-gray-600 bg-transparent";
+
+  const nameClass = isWinner
+    ? "text-retro-green"
+    : decided
+      ? "text-gray-500"
+      : "text-white";
+
   return (
-    <div
-      className={`flex-1 min-w-0 border-2 px-2 py-1.5 ${
-        isWinner
-          ? "border-retro-green/60 bg-retro-green/10"
-          : "border-gray-700 bg-transparent"
-      }`}
-    >
+    <div className={`flex-1 min-w-0 border-2 px-2 py-1.5 ${borderClass}`}>
       <div className="flex items-center justify-between gap-1">
         <div className="min-w-0">
           <div className="flex items-center gap-1">
@@ -177,11 +196,7 @@ function WrestlerBox({
                 W
               </span>
             )}
-            <span
-              className={`font-pixel text-xs truncate ${
-                isWinner ? "text-retro-green" : "text-gray-400"
-              }`}
-            >
+            <span className={`font-pixel text-xs truncate ${nameClass}`}>
               {name}
             </span>
           </div>

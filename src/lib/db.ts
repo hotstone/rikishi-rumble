@@ -20,6 +20,7 @@ export function getDb(): Database.Database {
   db.pragma("foreign_keys = ON");
 
   initializeSchema(db);
+  migrateSchema(db);
   syncUsersFromConfig(db);
 
   return db;
@@ -72,8 +73,10 @@ function initializeSchema(db: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       basho_id TEXT NOT NULL,
       day INTEGER NOT NULL,
-      winner_id INTEGER NOT NULL,
-      loser_id INTEGER NOT NULL,
+      east_id INTEGER NOT NULL,
+      west_id INTEGER NOT NULL,
+      winner_id INTEGER,
+      loser_id INTEGER,
       kimarite TEXT,
       is_kimboshi INTEGER DEFAULT 0
     );
@@ -96,6 +99,39 @@ function initializeSchema(db: Database.Database) {
       created_at TEXT NOT NULL
     );
   `);
+}
+
+function migrateSchema(db: Database.Database) {
+  const columns = db.prepare("PRAGMA table_info(bout_results)").all() as { name: string; notnull: number }[];
+  const colNames = new Set(columns.map((c) => c.name));
+
+  // Need to recreate table if east_id is missing or winner_id is NOT NULL
+  const winnerCol = columns.find((c) => c.name === "winner_id");
+  const needsRecreate = !colNames.has("east_id") || (winnerCol && winnerCol.notnull === 1);
+
+  if (needsRecreate) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS bout_results_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        basho_id TEXT NOT NULL,
+        day INTEGER NOT NULL,
+        east_id INTEGER NOT NULL,
+        west_id INTEGER NOT NULL,
+        winner_id INTEGER,
+        loser_id INTEGER,
+        kimarite TEXT,
+        is_kimboshi INTEGER DEFAULT 0
+      );
+      INSERT INTO bout_results_new (id, basho_id, day, east_id, west_id, winner_id, loser_id, kimarite, is_kimboshi)
+        SELECT id, basho_id, day,
+          COALESCE(${colNames.has("east_id") ? "east_id" : "winner_id"}, winner_id),
+          COALESCE(${colNames.has("west_id") ? "west_id" : "loser_id"}, loser_id),
+          winner_id, loser_id, kimarite, is_kimboshi
+        FROM bout_results;
+      DROP TABLE bout_results;
+      ALTER TABLE bout_results_new RENAME TO bout_results;
+    `);
+  }
 }
 
 function syncUsersFromConfig(db: Database.Database) {

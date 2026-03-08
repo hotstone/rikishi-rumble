@@ -14,15 +14,11 @@ interface UserOption {
 }
 
 export function useAuth() {
-  const [session, setSession] = useState<UserSession | null>(null);
-
-  useEffect(() => {
+  const [session, setSession] = useState<UserSession | null>(() => {
+    if (typeof window === "undefined") return null;
     const stored = localStorage.getItem("rikishi-session");
-    if (stored) {
-      setSession(JSON.parse(stored));
-    }
-  }, []);
-
+    return stored ? JSON.parse(stored) : null;
+  });
   const login = (user: UserSession) => {
     localStorage.setItem("rikishi-session", JSON.stringify(user));
     setSession(user);

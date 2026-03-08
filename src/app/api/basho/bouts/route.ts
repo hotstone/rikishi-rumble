@@ -21,41 +21,39 @@ export async function GET(request: NextRequest) {
   // Get all bouts grouped by day
   const bouts = db
     .prepare(
-      `SELECT br.day, br.winner_id, br.loser_id, br.kimarite, br.is_kimboshi,
-              rw.name as winner_name, rw.rank as winner_rank,
-              rl.name as loser_name, rl.rank as loser_rank
+      `SELECT br.day, br.east_id, br.west_id, br.winner_id, br.kimarite, br.is_kimboshi,
+              re.name as east_name, re.rank as east_rank,
+              rw.name as west_name, rw.rank as west_rank
        FROM bout_results br
-       LEFT JOIN rikishi_cache rw ON rw.id = br.winner_id AND rw.basho_id = br.basho_id
-       LEFT JOIN rikishi_cache rl ON rl.id = br.loser_id AND rl.basho_id = br.basho_id
+       LEFT JOIN rikishi_cache re ON re.id = br.east_id AND re.basho_id = br.basho_id
+       LEFT JOIN rikishi_cache rw ON rw.id = br.west_id AND rw.basho_id = br.basho_id
        WHERE br.basho_id = ?
        ORDER BY br.day, br.id`
     )
     .all(bashoId) as {
     day: number;
-    winner_id: number;
-    loser_id: number;
-    kimarite: string;
+    east_id: number;
+    west_id: number;
+    winner_id: number | null;
+    kimarite: string | null;
     is_kimboshi: number;
-    winner_name: string;
-    winner_rank: string;
-    loser_name: string;
-    loser_rank: string;
+    east_name: string;
+    east_rank: string;
+    west_name: string;
+    west_rank: string;
   }[];
 
   // Build user stable mappings per day
-  // Get all users
   const users = db
     .prepare("SELECT id, name FROM users")
     .all() as { id: string; name: string }[];
 
-  // Get all stables
   const stables = db
     .prepare(
       "SELECT user_id, tier, rikishi_id FROM stables WHERE basho_id = ?"
     )
     .all(bashoId) as { user_id: string; tier: number; rikishi_id: number }[];
 
-  // Get all substitutions
   const subs = db
     .prepare(
       "SELECT user_id, tier, new_rikishi, day FROM substitutions WHERE basho_id = ? ORDER BY created_at"
@@ -67,8 +65,6 @@ export async function GET(request: NextRequest) {
     day: number;
   }[];
 
-  // For each day, compute which rikishi each user had
-  // rikishiOwners: { [day]: { [rikishiId]: ["M", "S", ...] } }
   const userInitials: Record<string, string> = {};
   for (const u of users) {
     userInitials[u.id] = u.name.charAt(0).toUpperCase();
@@ -82,7 +78,6 @@ export async function GET(request: NextRequest) {
     const dayOwners: Record<number, string[]> = {};
 
     for (const user of users) {
-      // Start with original stable
       const activeByTier = new Map<number, number>();
       for (const s of stables) {
         if (s.user_id === user.id) {
@@ -90,7 +85,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Apply substitutions before this day
       for (const sub of subs) {
         if (sub.user_id === user.id && sub.day < day) {
           activeByTier.set(sub.tier, sub.new_rikishi);
@@ -110,16 +104,17 @@ export async function GET(request: NextRequest) {
   const boutsByDay: Record<
     number,
     {
-      winner_id: number;
-      loser_id: number;
-      winner_name: string;
-      winner_rank: string;
-      loser_name: string;
-      loser_rank: string;
-      kimarite: string;
+      east_id: number;
+      east_name: string;
+      east_rank: string;
+      west_id: number;
+      west_name: string;
+      west_rank: string;
+      winner_id: number | null;
+      kimarite: string | null;
       is_kimboshi: boolean;
-      winner_owners: string[];
-      loser_owners: string[];
+      east_owners: string[];
+      west_owners: string[];
     }[]
   > = {};
 
@@ -127,16 +122,17 @@ export async function GET(request: NextRequest) {
     if (!boutsByDay[bout.day]) boutsByDay[bout.day] = [];
     const owners = rikishiOwners[bout.day] || {};
     boutsByDay[bout.day].push({
+      east_id: bout.east_id,
+      east_name: bout.east_name,
+      east_rank: bout.east_rank,
+      west_id: bout.west_id,
+      west_name: bout.west_name,
+      west_rank: bout.west_rank,
       winner_id: bout.winner_id,
-      loser_id: bout.loser_id,
-      winner_name: bout.winner_name,
-      winner_rank: bout.winner_rank,
-      loser_name: bout.loser_name,
-      loser_rank: bout.loser_rank,
       kimarite: bout.kimarite,
       is_kimboshi: !!bout.is_kimboshi,
-      winner_owners: owners[bout.winner_id] || [],
-      loser_owners: owners[bout.loser_id] || [],
+      east_owners: owners[bout.east_id] || [],
+      west_owners: owners[bout.west_id] || [],
     });
   }
 
