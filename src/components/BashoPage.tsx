@@ -212,18 +212,18 @@ function WrestlerBox({
           </div>
         </div>
         {owners.length > 0 && (
-          <div className="shrink-0 flex gap-0.5 flex-wrap justify-end">
-            {owners.map((ownerName, i) => (
+          <div className="shrink-0 flex gap-0.5">
+            {owners.map((initials, i) => (
               <span
                 key={i}
-                className={`font-pixel px-1 border ${
+                className={`font-pixel inline-flex items-center justify-center h-4 px-0.5 border ${
                   isWinner
                     ? "border-retro-yellow/60 text-retro-yellow bg-retro-yellow/10"
                     : "border-gray-600 text-gray-500 bg-transparent"
                 }`}
                 style={{ fontSize: "7px" }}
               >
-                {ownerName}
+                {initials}
               </span>
             ))}
           </div>
