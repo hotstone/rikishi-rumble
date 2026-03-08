@@ -32,7 +32,7 @@ export async function syncBanzuke(bashoId: string): Promise<{ count: number }> {
 export async function syncDay(
   bashoId: string,
   day: number
-): Promise<{ bouts: number; pending: boolean }> {
+): Promise<{ bouts: number; pending: boolean; inProgress: boolean }> {
   const db = getDb();
 
   let matches: Awaited<ReturnType<typeof fetchTorikumi>>["matches"];
@@ -47,12 +47,12 @@ export async function syncDay(
     }
   } catch {
     logSync(bashoId, day, "error", "Failed to fetch torikumi");
-    return { bouts: 0, pending: true };
+    return { bouts: 0, pending: true, inProgress: false };
   }
 
   if (!Array.isArray(matches) || matches.length === 0) {
     logSync(bashoId, day, "pending", "No match data available");
-    return { bouts: 0, pending: true };
+    return { bouts: 0, pending: true, inProgress: false };
   }
 
   if (matches.length < 10) {
@@ -129,7 +129,10 @@ export async function syncDay(
   transaction();
   logSync(bashoId, day, "success", `${matches.length} bouts synced`);
 
-  return { bouts: matches.length, pending: false };
+  const decidedCount = matches.filter((m) => m.winnerId).length;
+  const inProgress = decidedCount > 0 && decidedCount < matches.length;
+
+  return { bouts: matches.length, pending: false, inProgress };
 }
 
 export function calculateScores(bashoId: string): void {

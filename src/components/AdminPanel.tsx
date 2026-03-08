@@ -44,7 +44,7 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
     const data = await res.json();
     if (res.ok) {
       setMessage(data.message);
-      return !!data.pending;
+      return !!data.inProgress;
     } else {
       setMessage(data.error || "SYNC FAILED");
       return false;
@@ -57,13 +57,13 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
     setMessage("");
 
     if (action === "day" && day) {
-      const pending = await runDaySync(day);
+      const inProgress = await runDaySync(day);
       setSyncing(false);
-      if (pending) {
+      if (inProgress) {
         setAutoSyncDay(day);
         autoSyncInterval.current = setInterval(async () => {
-          const stillPending = await runDaySync(day);
-          if (!stillPending) {
+          const stillInProgress = await runDaySync(day);
+          if (!stillInProgress) {
             stopAutoSync();
           }
         }, 3 * 60 * 1000);
