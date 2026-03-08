@@ -63,7 +63,7 @@ export async function syncDay(
     "SELECT rank FROM rikishi_cache WHERE id = ? AND basho_id = ?"
   );
   const upsertRikishi = db.prepare(
-    "INSERT INTO rikishi_cache (id, name, rank, basho_id, tier) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id, basho_id) DO NOTHING"
+    "INSERT INTO rikishi_cache (id, name, rank, basho_id, tier) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id, basho_id) DO UPDATE SET name = excluded.name, rank = excluded.rank, tier = excluded.tier"
   );
   const deletePrevious = db.prepare(
     "DELETE FROM bout_results WHERE basho_id = ? AND day = ?"
