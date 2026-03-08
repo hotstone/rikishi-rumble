@@ -119,10 +119,6 @@ export function StableSelector({
 
     if (res.ok) {
       setMessage("STABLE SAVED!");
-      const stableData = await fetch(`/api/stable?userId=${userId}`).then((r) =>
-        r.json()
-      );
-      setCurrentStable(stableData.stable);
     } else {
       const err = await res.json();
       setMessage(err.error || "SAVE FAILED");

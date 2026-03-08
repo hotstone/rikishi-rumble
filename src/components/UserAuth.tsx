@@ -33,7 +33,7 @@ export function useAuth() {
     setSession(null);
   };
 
-  return { session, login, logout };
+  return { session, login, logout, hydrated };
 }
 
 export function UserAuth({

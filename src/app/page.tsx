@@ -13,15 +13,14 @@ type Tab = "leaderboard" | "basho" | "stable" | "substitution" | "admin";
 export default function Home() {
   const { session, login, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("leaderboard");
-  const [pin, setPin] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("rikishi-pin") || "";
-  });
+  const [pin, setPin] = useState("");
   const [scanlines, setScanlines] = useState(false);
   const [basho, setBasho] = useState("");
   const [currentDay, setCurrentDay] = useState(0);
 
   useEffect(() => {
+    const stored = localStorage.getItem("rikishi-pin");
+    if (stored) setPin(stored);
     Promise.all([
       fetch("/api/basho").then((r) => r.json()),
       fetch("/api/leaderboard").then((r) => r.json()),
