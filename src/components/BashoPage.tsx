@@ -46,15 +46,14 @@ export function BashoPage() {
 
   // Poll every 3 minutes if the current day is partially decided
   useEffect(() => {
-    if (!data) return;
-    const latestSyncedDay = Math.max(...data.syncedDays, 0);
-    const bouts = data.boutsByDay[latestSyncedDay] || [];
+    if (!data || data.currentDay === 0) return;
+    const bouts = data.boutsByDay[data.currentDay] || [];
     const decidedCount = bouts.filter((b) => b.winner_id).length;
     const inProgress = decidedCount > 0 && decidedCount < bouts.length;
 
     if (!inProgress) return;
 
-    const interval = setInterval(fetchData,  60 * 1000);
+    const interval = setInterval(fetchData, 60 * 1000);
     return () => clearInterval(interval);
   }, [data, fetchData]);
 
