@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface Bout {
   east_id: number;
@@ -26,14 +26,37 @@ interface BashoData {
 export function BashoPage() {
   const [data, setData] = useState<BashoData | null>(null);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+  const initialLoad = useRef(true);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     fetch("/api/basho/bouts")
       .then((r) => r.json())
       .then((d: BashoData) => {
         setData(d);
+        if (initialLoad.current && d.currentDay > 0) {
+          setExpandedDays(new Set([d.currentDay]));
+          initialLoad.current = false;
+        }
       });
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Poll every 3 minutes if the current day is partially decided
+  useEffect(() => {
+    if (!data) return;
+    const latestSyncedDay = Math.max(...data.syncedDays, 0);
+    const bouts = data.boutsByDay[latestSyncedDay] || [];
+    const decidedCount = bouts.filter((b) => b.winner_id).length;
+    const inProgress = decidedCount > 0 && decidedCount < bouts.length;
+
+    if (!inProgress) return;
+
+    const interval = setInterval(fetchData, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [data, fetchData]);
 
   if (!data) {
     return (
