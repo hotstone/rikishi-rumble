@@ -90,6 +90,25 @@ interface SubstitutionRecord {
   created_at: string;
 }
 
+interface Bout {
+  east_id: number;
+  east_name: string;
+  west_id: number;
+  west_name: string;
+  winner_id: number | null;
+}
+
+interface ClashInfo {
+  eastName: string;
+  westName: string;
+}
+
+function detectClashes(stableIds: Set<number>, bouts: Bout[]): ClashInfo[] {
+  return bouts
+    .filter((b) => stableIds.has(b.east_id) && stableIds.has(b.west_id))
+    .map((b) => ({ eastName: b.east_name, westName: b.west_name }));
+}
+
 export function SubstitutionPanel({
   userId,
   userName,
@@ -102,6 +121,7 @@ export function SubstitutionPanel({
   const [stable, setStable] = useState<StableEntry[]>([]);
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [substitutions, setSubstitutions] = useState<SubstitutionRecord[]>([]);
+  const [boutsByDay, setBoutsByDay] = useState<Record<number, Bout[]>>({});
   const [swappingTier, setSwappingTier] = useState<number | null>(null);
   const [pendingSwap, setPendingSwap] = useState<{
     tier: number;
@@ -113,17 +133,19 @@ export function SubstitutionPanel({
   const [currentDay, setCurrentDay] = useState(1);
 
   const loadData = useCallback(async () => {
-    const [stableRes, wrestlerRes, subRes, lbRes] = await Promise.all([
+    const [stableRes, wrestlerRes, subRes, lbRes, boutsRes] = await Promise.all([
       fetch(`/api/stable?userId=${userId}`).then((r) => r.json()),
       fetch("/api/wrestlers").then((r) => r.json()),
       fetch(`/api/substitution?userId=${userId}`).then((r) => r.json()),
       fetch("/api/leaderboard").then((r) => r.json()),
+      fetch("/api/basho/bouts").then((r) => r.json()),
     ]);
 
     setStable(stableRes.stable);
     setWrestlers(wrestlerRes.wrestlers);
     setSubstitutions(subRes.substitutions);
     setCurrentDay(lbRes.currentDay || 1);
+    setBoutsByDay(boutsRes.boutsByDay || {});
   }, [userId]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -132,6 +154,20 @@ export function SubstitutionPanel({
   const { timeLeft, isOpen: windowOpen } = useSubWindowCountdown();
   const todaySwapCount = substitutions.filter((s) => s.day === currentDay).length;
   const swapsRemaining = todaySwapCount < 2;
+
+  const nextDay = currentDay + 1;
+  const nextDayBouts = boutsByDay[nextDay] || [];
+  const stableIds = new Set(stable.map((s) => s.rikishi_id));
+  const clashes = detectClashes(stableIds, nextDayBouts);
+
+  // Clashes if pendingSwap is confirmed: replace the swapped tier's wrestler
+  const pendingClashes: ClashInfo[] = (() => {
+    if (!pendingSwap) return [];
+    const hypotheticalIds = new Set(
+      stable.map((s) => s.tier === pendingSwap.tier ? pendingSwap.rikishiId : s.rikishi_id)
+    );
+    return detectClashes(hypotheticalIds, nextDayBouts);
+  })();
 
   const handleSwap = async (tier: number, newRikishiId: number) => {
     setMessage("");
@@ -187,6 +223,19 @@ export function SubstitutionPanel({
           <p className="font-pixel text-xs text-retro-yellow">
             2/2 SWAPS USED TODAY
           </p>
+        </div>
+      )}
+
+      {windowOpen && clashes.length > 0 && (
+        <div className="bg-retro-red/10 border-2 border-retro-red px-3 py-2 mb-3">
+          <p className="font-pixel text-xs text-retro-red mb-1">
+            ⚠ STABLEMATE CLASH DAY {nextDay}
+          </p>
+          {clashes.map((c, i) => (
+            <p key={i} className="font-pixel text-xs text-retro-yellow">
+              {c.eastName} vs {c.westName}
+            </p>
+          ))}
         </div>
       )}
 
@@ -292,6 +341,18 @@ export function SubstitutionPanel({
                   <span className="text-retro-green">{pendingSwap.name}</span>
                   <span className="text-gray-400 ml-1">({pendingSwap.rank})</span>
                 </p>
+                {pendingClashes.length > 0 && (
+                  <div className="bg-retro-red/10 border border-retro-red px-2 py-1.5 mb-3">
+                    <p className="font-pixel text-xs text-retro-red mb-1">
+                      ⚠ CLASH DAY {nextDay}
+                    </p>
+                    {pendingClashes.map((c, i) => (
+                      <p key={i} className="font-pixel text-xs text-retro-yellow">
+                        {c.eastName} vs {c.westName}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
