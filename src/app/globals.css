@@ -183,3 +183,25 @@ body {
 .title-glow {
   animation: title-glow 2s ease-in-out infinite;
 }
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .retro-panel {
+    padding: 8px;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  }
+
+  .retro-tab {
+    padding: 6px 10px;
+    font-size: 8px;
+  }
+
+  .retro-btn {
+    min-height: 32px;
+  }
+
+  .retro-select, .retro-input {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+}

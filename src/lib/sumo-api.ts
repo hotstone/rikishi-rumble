@@ -37,13 +37,15 @@ export async function fetchBanzuke(
 export async function fetchTorikumi(
   bashoId: string,
   day: number
-): Promise<SumoApiTorikumiMatch[]> {
+): Promise<{ matches: SumoApiTorikumiMatch[]; startDate?: string }> {
   const url = `${BASE_URL}/basho/${bashoId}/torikumi/Makuuchi/${day}`;
   const response = await fetchWithRetry(url);
   const data = await response.json();
 
-  // The API wraps matches in a `torikumi` array
-  return data.torikumi || [];
+  return {
+    matches: data.torikumi || [],
+    startDate: data.startDate || undefined,
+  };
 }
 
 // Parse rank strings like "Yokozuna 1 East", "Maegashira 12 West", "Ozeki 2 East"

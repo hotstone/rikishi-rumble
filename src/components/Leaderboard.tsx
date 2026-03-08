@@ -17,6 +17,16 @@ interface LeaderboardEntry {
   today_points: number;
   kimboshi_total: number;
   wrestlers: WrestlerEntry[];
+  dailyPoints: Record<number, number>;
+}
+
+function getDayColor(points: number): string {
+  if (points === 0) return "bg-retro-red";
+  if (points <= 1) return "bg-orange-500";
+  if (points <= 2) return "bg-retro-yellow";
+  if (points <= 3) return "bg-lime-500";
+  if (points <= 4) return "bg-retro-green";
+  return "bg-retro-cyan";
 }
 
 interface LeaderboardData {
@@ -44,7 +54,7 @@ export function Leaderboard() {
 
   return (
     <div className="retro-panel">
-      <div className="retro-panel-header">
+      <div className="retro-panel-header flex-col sm:flex-row gap-1">
         <h2 className="font-pixel text-sm">SCOREBOARD</h2>
         <span className="font-pixel text-xs text-retro-cyan">
           BASHO {basho} - DAY {currentDay || "?"}
@@ -66,8 +76,8 @@ export function Leaderboard() {
         </div>
       ) : (
         <div className="space-y-1">
-          {/* Header */}
-          <div className="grid grid-cols-12 gap-1 px-2 py-1 text-retro-cyan font-pixel text-xs">
+          {/* Desktop header */}
+          <div className="hidden sm:grid grid-cols-12 gap-1 px-2 py-1 text-retro-cyan font-pixel text-xs">
             <div className="col-span-1">#</div>
             <div className="col-span-4">PLAYER</div>
             <div className="col-span-2 text-right">TODAY</div>
@@ -77,8 +87,9 @@ export function Leaderboard() {
 
           {leaderboard.map((entry, idx) => (
             <div key={entry.user_id}>
+              {/* Desktop row */}
               <div
-                className={`grid grid-cols-12 gap-1 px-2 py-2 cursor-pointer transition-colors ${
+                className={`hidden sm:grid grid-cols-12 gap-1 px-2 py-2 cursor-pointer transition-colors ${
                   idx === 0 && entry.total_points > 0
                     ? "bg-retro-yellow/10 border-2 border-retro-yellow"
                     : "border-2 border-transparent hover:border-retro-cyan/30"
@@ -107,18 +118,74 @@ export function Leaderboard() {
                 </div>
               </div>
 
-              {expandedUser === entry.user_id && entry.wrestlers.length > 0 && (
-                <div className="ml-6 mb-2 border-l-2 border-retro-cyan/30 pl-3 py-1">
+              {/* Mobile card */}
+              <div
+                className={`sm:hidden px-3 py-2 cursor-pointer transition-colors ${
+                  idx === 0 && entry.total_points > 0
+                    ? "bg-retro-yellow/10 border-2 border-retro-yellow"
+                    : "border-2 border-transparent hover:border-retro-cyan/30"
+                }`}
+                onClick={() =>
+                  setExpandedUser(
+                    expandedUser === entry.user_id ? null : entry.user_id
+                  )
+                }
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-pixel text-xs text-retro-yellow">{idx + 1}</span>
+                    <span className="font-pixel text-xs text-white">
+                      {idx === 0 && entry.total_points > 0 && "★ "}
+                      {entry.user_name}
+                    </span>
+                  </div>
+                  <span className="font-pixel text-sm text-white">{entry.total_points}</span>
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="font-pixel text-xs text-retro-green">+{entry.today_points} TODAY</span>
+                  {entry.kimboshi_total > 0 && (
+                    <span className="font-pixel text-xs text-retro-magenta">{entry.kimboshi_total} KB</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Expanded details (both mobile & desktop) */}
+              {expandedUser === entry.user_id && (
+                <div className="ml-3 sm:ml-6 mb-2 border-l-2 border-retro-cyan/30 pl-2 sm:pl-3 py-1">
+                  {/* Power-up bar */}
+                  <div className="mb-2">
+                    <div className="flex gap-0.5 items-end">
+                      {Array.from({ length: 15 }, (_, i) => {
+                        const day = i + 1;
+                        const played = day <= currentDay;
+                        const points = entry.dailyPoints[day] ?? 0;
+                        return (
+                          <div key={day} className="flex flex-col items-center flex-1 min-w-0 group relative">
+                            <div
+                              className={`w-full h-4 border border-black/30 ${
+                                played ? getDayColor(points) : "bg-gray-700"
+                              }`}
+                              title={played ? `Day ${day}: ${points}pts` : `Day ${day}`}
+                            />
+                            <span className="font-pixel text-gray-500 mt-0.5 leading-none" style={{ fontSize: "6px" }}>
+                              {day}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {entry.wrestlers.map((w) => (
                     <div
                       key={w.tier}
                       className="flex justify-between py-0.5 font-pixel text-xs"
                     >
-                      <span className="text-gray-400">
+                      <span className="text-gray-400 truncate mr-2">
                         T{w.tier}: <span className="text-white">{w.name || "???"}</span>
                         <span className="text-retro-cyan ml-1">{w.rank}</span>
                       </span>
-                      <span className="text-retro-green">{w.points}W</span>
+                      <span className="text-retro-green shrink-0">{w.points}W</span>
                     </div>
                   ))}
                 </div>

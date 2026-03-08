@@ -35,9 +35,16 @@ export async function syncDay(
 ): Promise<{ bouts: number; pending: boolean }> {
   const db = getDb();
 
-  let matches;
+  let matches: Awaited<ReturnType<typeof fetchTorikumi>>["matches"];
   try {
-    matches = await fetchTorikumi(bashoId, day);
+    const result = await fetchTorikumi(bashoId, day);
+    matches = result.matches;
+
+    // Store basho start date if available
+    if (result.startDate) {
+      db.prepare("UPDATE basho SET start_date = ? WHERE id = ? AND start_date IS NULL")
+        .run(result.startDate, bashoId);
+    }
   } catch {
     logSync(bashoId, day, "error", "Failed to fetch torikumi");
     return { bouts: 0, pending: true };
@@ -48,7 +55,6 @@ export async function syncDay(
     return { bouts: 0, pending: true };
   }
 
-  // Expected ~15 bouts per day in Makuuchi (could be fewer due to withdrawals)
   if (matches.length < 10) {
     logSync(bashoId, day, "incomplete", `Only ${matches.length} bouts found`);
   }

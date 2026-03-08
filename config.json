@@ -1,6 +1,7 @@
 {
   "timezone": "Australia/Sydney",
-  "basho": "202603",
+  "basho": "202601",
+  "stableLockDate": "2026-03-08T06:00:00Z",
   "users": [
     {
       "name": "Matt",
@@ -10,6 +11,26 @@
     {
       "name": "Sarah",
       "pin": "5678",
+      "admin": false
+    },
+    {
+      "name": "Marc",
+      "pin": "1111",
+      "admin": true
+    },
+    {
+      "name": "Chai",
+      "pin": "2222",
+      "admin": true
+    },
+    {
+      "name": "Alyssa",
+      "pin": "3333",
+      "admin": false
+    },
+    {
+      "name": "Mac",
+      "pin": "4444",
       "admin": false
     }
   ]

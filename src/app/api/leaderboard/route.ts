@@ -3,12 +3,12 @@ import { getDb } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 
 export async function GET(request: NextRequest) {
+  const config = getConfig();
   const bashoId =
-    request.nextUrl.searchParams.get("basho") || getConfig().basho;
+    request.nextUrl.searchParams.get("basho") || config.basho;
 
   const db = getDb();
 
-  // Get the latest day with results
   const latestDay = db
     .prepare(
       "SELECT MAX(day) as day FROM bout_results WHERE basho_id = ?"
@@ -59,6 +59,18 @@ export async function GET(request: NextRequest) {
       points: number;
     }[];
 
+    // Daily scores for power-up bar
+    const dailyScores = db
+      .prepare(
+        "SELECT day, points FROM daily_scores WHERE basho_id = ? AND user_id = ? ORDER BY day"
+      )
+      .all(bashoId, user.id) as { day: number; points: number }[];
+
+    const dailyPoints: Record<number, number> = {};
+    for (const ds of dailyScores) {
+      dailyPoints[ds.day] = ds.points;
+    }
+
     return {
       user_id: user.id,
       user_name: user.name,
@@ -66,6 +78,7 @@ export async function GET(request: NextRequest) {
       today_points: todayRow?.points || 0,
       kimboshi_total: totalRow.kb,
       wrestlers,
+      dailyPoints,
     };
   });
 

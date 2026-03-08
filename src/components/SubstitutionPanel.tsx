@@ -2,6 +2,74 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+function useSubWindowCountdown() {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    function update() {
+      let hour: number;
+      let minute: number;
+
+      // Get current time in AEST
+      const now = new Date();
+      const aestStr = now.toLocaleString("en-US", {
+        timeZone: "Australia/Sydney",
+        hour12: false,
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+      });
+      const [datePart, timePart] = aestStr.split(", ");
+      const [month, day, year] = datePart.split("/").map(Number);
+      [hour, minute] = timePart.split(":").map(Number);
+
+      const open = hour >= 20 || hour < 14;
+      setIsOpen(open);
+
+      let targetHour: number;
+      let targetDay = day;
+
+      if (open) {
+        if (hour >= 20) {
+          targetDay = day + 1;
+        }
+        targetHour = 14;
+      } else {
+        targetHour = 20;
+      }
+
+      const targetDate = new Date(
+        new Date().toLocaleString("en-US", { timeZone: "Australia/Sydney" })
+      );
+      targetDate.setFullYear(year, month - 1, targetDay);
+      targetDate.setHours(targetHour, 0, 0, 0);
+
+      const aestNow = new Date(
+        now.toLocaleString("en-US", { timeZone: "Australia/Sydney" })
+      );
+      const diff = targetDate.getTime() - aestNow.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft("00H 00M 00S");
+        return;
+      }
+
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft(
+        `${String(h).padStart(2, "0")}H ${String(m).padStart(2, "0")}M ${String(s).padStart(2, "0")}S`
+      );
+    }
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { timeLeft, isOpen };
+}
+
 interface StableEntry {
   tier: number;
   rikishi_id: number;
@@ -37,8 +105,13 @@ export function SubstitutionPanel({
   const [stable, setStable] = useState<StableEntry[]>([]);
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [substitutions, setSubstitutions] = useState<SubstitutionRecord[]>([]);
-  const [windowOpen, setWindowOpen] = useState(false);
   const [swappingTier, setSwappingTier] = useState<number | null>(null);
+  const [pendingSwap, setPendingSwap] = useState<{
+    tier: number;
+    rikishiId: number;
+    name: string;
+    rank: string;
+  } | null>(null);
   const [message, setMessage] = useState("");
   const [currentDay, setCurrentDay] = useState(1);
 
@@ -53,13 +126,16 @@ export function SubstitutionPanel({
     setStable(stableRes.stable);
     setWrestlers(wrestlerRes.wrestlers);
     setSubstitutions(subRes.substitutions);
-    setWindowOpen(subRes.windowOpen);
     setCurrentDay(lbRes.currentDay || 1);
   }, [userId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const { timeLeft, isOpen: windowOpen } = useSubWindowCountdown();
+  const todaySwapCount = substitutions.filter((s) => s.day === currentDay).length;
+  const swapsRemaining = todaySwapCount < 2;
 
   const handleSwap = async (tier: number, newRikishiId: number) => {
     setMessage("");
@@ -98,10 +174,22 @@ export function SubstitutionPanel({
         </span>
       </div>
 
-      {!windowOpen && (
-        <div className="bg-retro-red/10 border-2 border-retro-red/30 px-3 py-2 mb-3">
-          <p className="font-pixel text-xs text-retro-red">
-            OPENS AT 8:00 PM AEST
+      <div className={`border-2 px-3 py-2 mb-3 ${
+        windowOpen
+          ? "bg-retro-green/10 border-retro-green/30"
+          : "bg-retro-red/10 border-retro-red/30"
+      }`}>
+        <p className={`font-pixel text-xs ${windowOpen ? "text-retro-green" : "text-retro-red"}`}>
+          {windowOpen
+            ? `CLOSES IN: ${timeLeft}`
+            : `OPENS IN: ${timeLeft}`}
+        </p>
+      </div>
+
+      {windowOpen && todaySwapCount >= 2 && (
+        <div className="bg-retro-yellow/10 border-2 border-retro-yellow/30 px-3 py-2 mb-3">
+          <p className="font-pixel text-xs text-retro-yellow">
+            2/2 SWAPS USED TODAY
           </p>
         </div>
       )}
@@ -133,7 +221,11 @@ export function SubstitutionPanel({
 
               {windowOpen && swappingTier !== entry.tier && (
                 <button
-                  onClick={() => setSwappingTier(entry.tier)}
+                  onClick={() => {
+                    setSwappingTier(entry.tier);
+                    setPendingSwap(null);
+                  }}
+                  disabled={!swapsRemaining}
                   className="retro-btn text-xs px-2 py-1"
                 >
                   SWAP
@@ -142,7 +234,10 @@ export function SubstitutionPanel({
 
               {swappingTier === entry.tier && (
                 <button
-                  onClick={() => setSwappingTier(null)}
+                  onClick={() => {
+                    setSwappingTier(null);
+                    setPendingSwap(null);
+                  }}
                   className="retro-btn-danger text-xs px-2 py-1"
                 >
                   CANCEL
@@ -166,7 +261,14 @@ export function SubstitutionPanel({
                   .map((w) => (
                     <button
                       key={w.id}
-                      onClick={() => handleSwap(swappingTier, w.id)}
+                      onClick={() =>
+                        setPendingSwap({
+                          tier: swappingTier,
+                          rikishiId: w.id,
+                          name: w.name,
+                          rank: w.rank,
+                        })
+                      }
                       className="p-2 border-2 border-gray-600 hover:border-retro-yellow text-left"
                     >
                       <div className="font-pixel text-xs text-white truncate">
@@ -180,6 +282,40 @@ export function SubstitutionPanel({
               </div>
             </div>
           )}
+
+          {pendingSwap && (() => {
+            const oldWrestler = stable.find((s) => s.tier === pendingSwap.tier);
+            return (
+              <div className="border-2 border-retro-green bg-retro-green/10 p-3 mt-2">
+                <p className="font-pixel text-xs text-retro-yellow mb-2">
+                  CONFIRM SWAP?
+                </p>
+                <p className="font-pixel text-xs text-white mb-3">
+                  <span className="text-retro-red">{oldWrestler?.name}</span>
+                  {" → "}
+                  <span className="text-retro-green">{pendingSwap.name}</span>
+                  <span className="text-gray-400 ml-1">({pendingSwap.rank})</span>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      handleSwap(pendingSwap.tier, pendingSwap.rikishiId);
+                      setPendingSwap(null);
+                    }}
+                    className="retro-btn text-xs px-3 py-1"
+                  >
+                    CONFIRM
+                  </button>
+                  <button
+                    onClick={() => setPendingSwap(null)}
+                    className="retro-btn-danger text-xs px-3 py-1"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           {message && (
             <p

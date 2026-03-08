@@ -6,8 +6,9 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { StableSelector } from "@/components/StableSelector";
 import { SubstitutionPanel } from "@/components/SubstitutionPanel";
 import { AdminPanel } from "@/components/AdminPanel";
+import { BashoPage } from "@/components/BashoPage";
 
-type Tab = "leaderboard" | "stable" | "substitution" | "admin";
+type Tab = "leaderboard" | "basho" | "stable" | "substitution" | "admin";
 
 export default function Home() {
   const { session, login, logout } = useAuth();
@@ -38,6 +39,7 @@ export default function Home() {
 
   const tabs: { id: Tab; label: string; requiresAuth?: boolean; requiresAdmin?: boolean }[] = [
     { id: "leaderboard", label: "SCORES" },
+    { id: "basho", label: "BASHO" },
     { id: "stable", label: "STABLE", requiresAuth: true },
     { id: "substitution", label: "SUBS", requiresAuth: true },
     { id: "admin", label: "ADMIN", requiresAuth: true, requiresAdmin: true },
@@ -46,9 +48,9 @@ export default function Home() {
   return (
     <div className={`min-h-screen ${scanlines ? "scanlines" : ""}`}>
       <header className="border-b-3 border-retro-border bg-retro-panel">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="font-pixel text-lg text-retro-yellow title-glow">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="font-pixel text-sm sm:text-lg text-retro-yellow title-glow">
               RIKISHI RUMBLE
             </h1>
             <div className="flex items-center gap-2">
@@ -67,7 +69,7 @@ export default function Home() {
             </div>
           </div>
 
-          <nav className="flex gap-1">
+          <nav className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               if (tab.requiresAuth && !session) return null;
               if (tab.requiresAdmin && !session?.admin) return null;
@@ -87,8 +89,10 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {activeTab === "leaderboard" && <Leaderboard />}
+
+        {activeTab === "basho" && <BashoPage />}
 
         {activeTab === "stable" && session && (
           <StableSelector
@@ -107,7 +111,7 @@ export default function Home() {
         )}
 
         {activeTab === "admin" && session?.admin && (
-          <AdminPanel userName={session.name} />
+          <AdminPanel userName={session.name} pin={pin} />
         )}
       </main>
 

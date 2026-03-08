@@ -1,10 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export function AdminPanel({ userName }: { userName: string }) {
+interface UserOption {
+  id: string;
+  name: string;
+}
+
+export function AdminPanel({ userName, pin }: { userName: string; pin: string }) {
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [pinMessage, setPinMessage] = useState("");
+
+
+  useEffect(() => {
+    fetch("/api/auth")
+      .then((r) => r.json())
+      .then((data) => setUsers(data.users));
+  }, []);
 
   const handleSync = async (action: string, day?: number) => {
     setSyncing(true);
@@ -65,6 +81,66 @@ export function AdminPanel({ userName }: { userName: string }) {
           <p className="font-pixel text-xs text-retro-green">{message}</p>
         )}
       </div>
+
+      {/* PIN Management */}
+      <div className="mt-4 border-t-2 border-retro-border pt-4">
+        <h3 className="font-pixel text-xs text-retro-cyan mb-3">CHANGE USER PIN</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={selectedUser}
+            onChange={(e) => setSelectedUser(e.target.value)}
+            className="retro-select text-xs"
+          >
+            <option value="">SELECT USER</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.name}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            maxLength={4}
+            placeholder="NEW PIN"
+            value={newPin}
+            onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+            className="retro-input w-20 text-xs text-center"
+          />
+          <button
+            onClick={async () => {
+              setPinMessage("");
+              const res = await fetch("/api/admin/pin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  adminName: userName,
+                  adminPin: pin,
+                  targetUser: selectedUser,
+                  newPin,
+                }),
+              });
+              const data = await res.json();
+              setPinMessage(data.message || data.error);
+              if (res.ok) {
+                setNewPin("");
+                setSelectedUser("");
+              }
+            }}
+            disabled={!selectedUser || newPin.length !== 4}
+            className="retro-btn text-xs px-3 py-1"
+          >
+            UPDATE
+          </button>
+        </div>
+        {pinMessage && (
+          <p className={`font-pixel text-xs mt-2 ${
+            pinMessage.startsWith("PIN") ? "text-retro-green" : "text-retro-red"
+          }`}>
+            {pinMessage}
+          </p>
+        )}
+      </div>
+
     </div>
   );
 }

@@ -90,13 +90,13 @@ export function UserAuth({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
       <select
         value={selectedUser}
         onChange={(e) => setSelectedUser(e.target.value)}
-        className="retro-select text-xs"
+        className="retro-select text-xs max-w-[130px] sm:max-w-none"
       >
-        <option value="">SELECT PLAYER</option>
+        <option value="">PLAYER</option>
         {users.map((u) => (
           <option key={u.id} value={u.name}>
             {u.name}
@@ -110,7 +110,7 @@ export function UserAuth({
         value={pin}
         onChange={(e) => setPin(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-        className="retro-input w-16 text-xs text-center"
+        className="retro-input w-14 sm:w-16 text-xs text-center"
       />
       <button
         onClick={handleLogin}
