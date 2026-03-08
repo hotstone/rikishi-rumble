@@ -22,12 +22,17 @@ export async function GET(request: NextRequest) {
   const bouts = db
     .prepare(
       `SELECT br.day, br.east_id, br.west_id, br.winner_id, br.kimarite, br.is_kimboshi,
-              re.name as east_name, re.rank as east_rank,
-              rw.name as west_name, rw.rank as west_rank
+              COALESCE(re.name, re2.name) as east_name,
+              COALESCE(re.rank, re2.rank) as east_rank,
+              COALESCE(rw.name, rw2.name) as west_name,
+              COALESCE(rw.rank, rw2.rank) as west_rank
        FROM bout_results br
        LEFT JOIN rikishi_cache re ON re.id = br.east_id AND re.basho_id = br.basho_id
+       LEFT JOIN rikishi_cache re2 ON re2.id = br.east_id AND re2.basho_id != br.basho_id
        LEFT JOIN rikishi_cache rw ON rw.id = br.west_id AND rw.basho_id = br.basho_id
+       LEFT JOIN rikishi_cache rw2 ON rw2.id = br.west_id AND rw2.basho_id != br.basho_id
        WHERE br.basho_id = ?
+       GROUP BY br.id
        ORDER BY br.day, br.id`
     )
     .all(bashoId) as {
@@ -123,11 +128,11 @@ export async function GET(request: NextRequest) {
     const owners = rikishiOwners[bout.day] || {};
     boutsByDay[bout.day].push({
       east_id: bout.east_id,
-      east_name: bout.east_name,
-      east_rank: bout.east_rank,
+      east_name: bout.east_name || `#${bout.east_id}`,
+      east_rank: bout.east_rank || "?",
       west_id: bout.west_id,
-      west_name: bout.west_name,
-      west_rank: bout.west_rank,
+      west_name: bout.west_name || `#${bout.west_id}`,
+      west_rank: bout.west_rank || "?",
       winner_id: bout.winner_id,
       kimarite: bout.kimarite,
       is_kimboshi: !!bout.is_kimboshi,
