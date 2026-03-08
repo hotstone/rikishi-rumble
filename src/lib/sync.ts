@@ -62,6 +62,9 @@ export async function syncDay(
   const getRikishi = db.prepare(
     "SELECT rank FROM rikishi_cache WHERE id = ? AND basho_id = ?"
   );
+  const upsertRikishi = db.prepare(
+    "INSERT INTO rikishi_cache (id, name, rank, basho_id, tier) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id, basho_id) DO NOTHING"
+  );
   const deletePrevious = db.prepare(
     "DELETE FROM bout_results WHERE basho_id = ? AND day = ?"
   );
@@ -73,6 +76,17 @@ export async function syncDay(
     deletePrevious.run(bashoId, day);
 
     for (const match of matches) {
+      // Ensure both wrestlers are in the cache (handles cross-division bouts)
+      if (!getRikishi.get(match.eastId, bashoId)) {
+        const rank = shortRank(match.eastRank);
+        const tier = getRankTier(match.eastRank);
+        upsertRikishi.run(match.eastId, match.eastShikona, rank, bashoId, tier);
+      }
+      if (!getRikishi.get(match.westId, bashoId)) {
+        const rank = shortRank(match.westRank);
+        const tier = getRankTier(match.westRank);
+        upsertRikishi.run(match.westId, match.westShikona, rank, bashoId, tier);
+      }
       let winnerId: number | null = null;
       let loserId: number | null = null;
       let isKimboshi = 0;
