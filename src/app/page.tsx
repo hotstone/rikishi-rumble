@@ -19,9 +19,16 @@ export default function Home() {
   });
   const [scanlines, setScanlines] = useState(false);
   const [basho, setBasho] = useState("");
+  const [currentDay, setCurrentDay] = useState(0);
 
   useEffect(() => {
-    fetch("/api/basho").then((r) => r.json()).then((d) => setBasho(d.basho || ""));
+    Promise.all([
+      fetch("/api/basho").then((r) => r.json()),
+      fetch("/api/leaderboard").then((r) => r.json()),
+    ]).then(([bashoData, lbData]) => {
+      setBasho(bashoData.basho || "");
+      setCurrentDay(lbData.currentDay || 0);
+    });
   }, []);
 
   const handleLogin = (user: { userId: string; name: string; admin: boolean }) => {
@@ -58,7 +65,9 @@ export default function Home() {
                 RIKISHI RUMBLE
               </h1>
               {basho && (
-                <p className="font-pixel text-xs text-retro-cyan">{basho}</p>
+                <p className="font-pixel text-xs text-retro-cyan">
+                  {basho}{currentDay > 0 && ` - DAY ${currentDay}`}
+                </p>
               )}
             </div>
             <div className="flex items-center gap-2">

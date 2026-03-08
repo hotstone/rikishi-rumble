@@ -209,7 +209,7 @@ export function StableSelector({
               disabled={saving || locked || Object.keys(picks).length !== 5}
               className="retro-btn px-4 py-2 font-pixel text-xs"
             >
-              {saving ? "SAVING..." : locked ? "LOCKED" : "LOCK IN STABLE"}
+              {saving ? "SAVING..." : locked ? "LOCKED" : "UPDATE STABLE"}
             </button>
             {message && (
               <span

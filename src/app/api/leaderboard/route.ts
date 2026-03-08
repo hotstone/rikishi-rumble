@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const latestDay = db
     .prepare(
-      "SELECT MAX(day) as day FROM bout_results WHERE basho_id = ?"
+      "SELECT MAX(day) as day FROM bout_results WHERE basho_id = ? AND winner_id IS NOT NULL"
     )
     .get(bashoId) as { day: number | null };
 
