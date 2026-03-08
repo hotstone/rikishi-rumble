@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   const INITIALS: Record<string, string> = {
     Matt: "MH",
     Marc: "MC",
-    Mac: "MK",
+    Mac: "MR",
   };
   const userInitials: Record<string, string> = {};
   for (const u of users) {
