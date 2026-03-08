@@ -70,9 +70,9 @@ export async function GET(request: NextRequest) {
     day: number;
   }[];
 
-  const userInitials: Record<string, string> = {};
+  const userNames: Record<string, string> = {};
   for (const u of users) {
-    userInitials[u.id] = u.name.charAt(0).toUpperCase();
+    userNames[u.id] = u.name;
   }
 
   const rikishiOwners: Record<number, Record<number, string[]>> = {};
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
 
       for (const rikishiId of activeByTier.values()) {
         if (!dayOwners[rikishiId]) dayOwners[rikishiId] = [];
-        dayOwners[rikishiId].push(userInitials[user.id]);
+        dayOwners[rikishiId].push(userNames[user.id]);
       }
     }
 
