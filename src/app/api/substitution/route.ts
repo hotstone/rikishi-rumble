@@ -110,15 +110,10 @@ export async function POST(request: NextRequest) {
 
   const oldRikishi = laterSub?.new_rikishi || currentStable.rikishi_id;
 
-  // Record substitution
+  // Record substitution (stables table is never mutated — subs are the source of truth)
   db.prepare(
     "INSERT INTO substitutions (basho_id, user_id, day, old_rikishi, new_rikishi, tier, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
   ).run(bashoId, userId, day, oldRikishi, newRikishiId, tier, new Date().toISOString());
-
-  // Update the stable
-  db.prepare(
-    "UPDATE stables SET rikishi_id = ?, selected_at = ? WHERE basho_id = ? AND user_id = ? AND tier = ?"
-  ).run(newRikishiId, new Date().toISOString(), bashoId, userId, tier);
 
   return NextResponse.json({ success: true });
 }

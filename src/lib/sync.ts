@@ -198,7 +198,7 @@ function getActiveStableForDay(
   userId: string,
   day: number
 ): number[] {
-  // Start with the original stable
+  // Start with the original stable selections
   const stables = db
     .prepare(
       "SELECT tier, rikishi_id FROM stables WHERE basho_id = ? AND user_id = ?"
@@ -210,21 +210,33 @@ function getActiveStableForDay(
     activeByTier.set(s.tier, s.rikishi_id);
   }
 
-  // Apply substitutions up to (but not including) this day
-  // Substitutions made on day X take effect from day X+1
-  // But substitutions made in the evening of day X (after results) apply from day X+1
-  const subs = db
+  // Get all subs ordered chronologically
+  const allSubs = db
     .prepare(
-      "SELECT tier, new_rikishi, day as sub_day FROM substitutions WHERE basho_id = ? AND user_id = ? AND day < ? ORDER BY created_at"
+      "SELECT tier, old_rikishi, new_rikishi, day as sub_day FROM substitutions WHERE basho_id = ? AND user_id = ? ORDER BY created_at"
     )
-    .all(bashoId, userId, day) as {
+    .all(bashoId, userId) as {
     tier: number;
+    old_rikishi: number;
     new_rikishi: number;
     sub_day: number;
   }[];
 
-  for (const sub of subs) {
-    activeByTier.set(sub.tier, sub.new_rikishi);
+  // Use the first sub's old_rikishi as the true original per tier — this corrects
+  // for any historical corruption where stables was mutated on substitution.
+  const seenTiers = new Set<number>();
+  for (const sub of allSubs) {
+    if (!seenTiers.has(sub.tier)) {
+      activeByTier.set(sub.tier, sub.old_rikishi);
+      seenTiers.add(sub.tier);
+    }
+  }
+
+  // Apply substitutions made before the target day
+  for (const sub of allSubs) {
+    if (sub.sub_day < day) {
+      activeByTier.set(sub.tier, sub.new_rikishi);
+    }
   }
 
   return Array.from(activeByTier.values());

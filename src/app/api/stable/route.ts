@@ -12,17 +12,48 @@ export async function GET(request: NextRequest) {
   }
 
   const db = getDb();
+
+  // Get original stable selections
   const stables = db
     .prepare(
-      `SELECT s.tier, s.rikishi_id, r.name, r.rank
-       FROM stables s
-       LEFT JOIN rikishi_cache r ON r.id = s.rikishi_id AND r.basho_id = s.basho_id
-       WHERE s.basho_id = ? AND s.user_id = ?
-       ORDER BY s.tier`
+      "SELECT tier, rikishi_id FROM stables WHERE basho_id = ? AND user_id = ? ORDER BY tier"
     )
-    .all(bashoId, userId);
+    .all(bashoId, userId) as { tier: number; rikishi_id: number }[];
 
-  return NextResponse.json({ stable: stables, basho: bashoId });
+  // Apply all substitutions to get the current effective stable
+  const allSubs = db
+    .prepare(
+      "SELECT tier, old_rikishi, new_rikishi FROM substitutions WHERE basho_id = ? AND user_id = ? ORDER BY created_at"
+    )
+    .all(bashoId, userId) as { tier: number; old_rikishi: number; new_rikishi: number }[];
+
+  const activeByTier = new Map<number, number>();
+  for (const s of stables) {
+    activeByTier.set(s.tier, s.rikishi_id);
+  }
+  // Use first sub's old_rikishi as true origin (corrects stables mutation bug)
+  const seenTiers = new Set<number>();
+  for (const sub of allSubs) {
+    if (!seenTiers.has(sub.tier)) {
+      activeByTier.set(sub.tier, sub.old_rikishi);
+      seenTiers.add(sub.tier);
+    }
+  }
+  // Apply all subs to get current state
+  for (const sub of allSubs) {
+    activeByTier.set(sub.tier, sub.new_rikishi);
+  }
+
+  // Fetch names/ranks for the effective wrestlers
+  const result = [];
+  for (const [tier, rikishiId] of [...activeByTier.entries()].sort(([a], [b]) => a - b)) {
+    const wrestler = db
+      .prepare("SELECT name, rank FROM rikishi_cache WHERE id = ? AND basho_id = ?")
+      .get(rikishiId, bashoId) as { name: string; rank: string } | undefined;
+    result.push({ tier, rikishi_id: rikishiId, name: wrestler?.name ?? "", rank: wrestler?.rank ?? "" });
+  }
+
+  return NextResponse.json({ stable: result, basho: bashoId });
 }
 
 export async function POST(request: NextRequest) {
