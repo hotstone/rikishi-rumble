@@ -120,7 +120,6 @@ export function Leaderboard() {
                   {rank}
                 </div>
                 <div className="col-span-4 font-pixel text-xs text-white">
-                  {isFirst && "★ "}
                   {entry.user_name}
                 </div>
                 <div className="col-span-2 text-right font-pixel text-xs text-retro-green">
@@ -147,7 +146,6 @@ export function Leaderboard() {
                   <div className="flex items-center gap-2">
                     <span className="font-pixel text-xs text-retro-yellow">{rank}</span>
                     <span className="font-pixel text-xs text-white">
-                      {isFirst && "★ "}
                       {entry.user_name}
                     </span>
                   </div>
