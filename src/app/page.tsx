@@ -23,6 +23,7 @@ export default function Home() {
   const [scanlines, setScanlines] = useState(false);
   const [basho, setBasho] = useState("");
   const [currentDay, setCurrentDay] = useState(0);
+  const [hasSubClash, setHasSubClash] = useState(false);
 
   useEffect(() => {
     setActiveTab(tabFromHash());
@@ -42,6 +43,18 @@ export default function Home() {
       setCurrentDay(lbData.currentDay || 0);
     });
   }, []);
+
+  useEffect(() => {
+    if (!session || currentDay === 0) return;
+    Promise.all([
+      fetch(`/api/stable?userId=${session.userId}`).then((r) => r.json()),
+      fetch("/api/basho/bouts").then((r) => r.json()),
+    ]).then(([stableData, boutsData]) => {
+      const stableIds = new Set<number>((stableData.stable ?? []).map((s: { rikishi_id: number }) => s.rikishi_id));
+      const nextDayBouts: { east_id: number; west_id: number }[] = boutsData.boutsByDay?.[currentDay + 1] ?? [];
+      setHasSubClash(nextDayBouts.some((b) => stableIds.has(b.east_id) && stableIds.has(b.west_id)));
+    });
+  }, [session, currentDay]);
 
   const navigateTo = (tab: Tab) => {
     window.history.pushState(null, "", `#${tab}`);
@@ -116,6 +129,9 @@ export default function Home() {
                   }`}
                 >
                   {tab.label}
+                  {tab.id === "substitution" && hasSubClash && (
+                    <span className="text-retro-red ml-1">!</span>
+                  )}
                 </button>
               );
             })}
