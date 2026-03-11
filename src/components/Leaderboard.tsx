@@ -129,7 +129,7 @@ export function Leaderboard() {
                   {entry.total_points}
                 </div>
                 <div className="col-span-3 text-right font-pixel text-xs text-retro-magenta">
-                  {entry.kimboshi_total > 0 ? `${entry.kimboshi_total}` : "-"}
+                  {entry.kimboshi_total > 0 ? "★".repeat(entry.kimboshi_total) : "-"}
                 </div>
               </div>
 
@@ -154,7 +154,7 @@ export function Leaderboard() {
                 <div className="flex items-center gap-3 mt-1">
                   <span className="font-pixel text-xs text-retro-green">+{entry.today_points} TODAY</span>
                   {entry.kimboshi_total > 0 && (
-                    <span className="font-pixel text-xs text-retro-magenta">{entry.kimboshi_total} KB</span>
+                    <span className="font-pixel text-xs text-retro-magenta">{"★".repeat(entry.kimboshi_total)} KB</span>
                   )}
                 </div>
               </div>
