@@ -129,8 +129,8 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  // Sort by total points descending
-  leaderboard.sort((a, b) => b.total_points - a.total_points);
+  // Sort by total points descending, then kimboshi as tiebreaker
+  leaderboard.sort((a, b) => b.total_points - a.total_points || b.kimboshi_total - a.kimboshi_total);
 
   // Check for pending sync
   const pendingSync = db
