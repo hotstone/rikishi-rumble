@@ -65,13 +65,13 @@ Each user selects exactly one wrestler from each of the following five rank tier
 ### Scoring
 
 - **Win:** Each bout won by a wrestler in your stable earns you **1 point**.
-- **Kimboshi:** If a Maegashira-ranked wrestler in your stable defeats a Yokozuna, you earn **1 extra bonus point** (2 total for that bout: 1 win + 1 kimboshi). This uses the strict traditional definition -- only Maegashira beating a Yokozuna counts.
-- Points are cumulative across the 15-day basho. The player with the most points at the end wins.
+- **Kimboshi:** If a Maegashira-ranked wrestler in your stable defeats a Yokozuna, you earn **1 extra bonus point** (2 total for that bout: 1 win + 1 kimboshi). This uses the strict traditional definition -- only Maegashira beating a Yokozuna counts. Wins by **Fusen** (forfeit, where the Yokozuna did not compete) do **not** count as kimboshi.
+- Points are cumulative across the 15-day basho. The player with the most points at the end wins. **Tiebreaker:** if two players are tied on points, the player with more kimboshi ranks higher.
 
 ### Substitutions
 
 - Each day, a user may substitute up to **2 wrestlers** in their stable.
-- The substitution window opens at **8:00 PM AEST** and closes at **2:00 PM AEST** the following day. This ensures swaps happen after the day's results are in and before the next day's bouts begin.
+- The substitution window opens at **8:00 PM AEST** and closes at **6:00 PM AEST** the following day. This ensures swaps happen after the day's results are in and before the next day's bouts begin.
 - A substituted wrestler must be replaced with another wrestler from the **same rank tier**.
 - Points earned by a swapped-out wrestler are **retained**. The new wrestler earns points from the next day onward.
 
@@ -91,7 +91,7 @@ All tournament data is sourced from the public API at `https://www.sumo-api.com/
 
 ### Kimboshi Detection
 
-The API does not explicitly flag kimboshi. To detect them, the app compares the winner's rank from the cached banzuke against the loser's rank. A kimboshi is recorded when: (1) the winner holds a Maegashira rank, AND (2) the loser holds a Yokozuna rank. This check uses the banzuke as published at the start of the basho -- rank does not change mid-tournament.
+The API does not explicitly flag kimboshi. To detect them, the app compares the winner's rank from the cached banzuke against the loser's rank. A kimboshi is recorded when: (1) the winner holds a Maegashira rank, AND (2) the loser holds a Yokozuna rank, AND (3) the winning technique (kimarite) is not "Fusen" (forfeit). This check uses the banzuke as published at the start of the basho -- rank does not change mid-tournament.
 
 ### Error Handling
 
@@ -106,9 +106,9 @@ The app is built as a **Next.js (TypeScript)** full-stack application with **SQL
 |-----------------|-------------------------------|------------------------------------------------------------------------|
 | Frontend        | Next.js (React, TypeScript)   | Component-based UI, SSR for fast loads, single project with API routes |
 | Backend / API   | Next.js API Routes            | Co-located with frontend, no separate server needed                    |
-| Database        | SQLite (via better-sqlite3 or Drizzle ORM) | Zero-config, file-based, perfect for small user base            |
+| Database        | SQLite (via better-sqlite3)   | Zero-config, file-based, perfect for small user base                   |
 | Scheduling      | node-cron (in-process)        | Runs daily poll jobs. Simple, no external scheduler needed             |
-| Hosting         | Self-hosted (VPS / home server) | Full control, SQLite-friendly, no cloud costs beyond the server      |
+| Hosting         | Fly.io                        | Simple container-based deploy, persistent volume for SQLite            |
 
 ### Key Architectural Decisions
 
@@ -185,9 +185,11 @@ The visual design is inspired by **Kunio-kun / Nekketsu** series games (River Ci
 
 ### Key UI Elements
 
-- **Leaderboard page (home):** Styled like a sports game scoreboard. Ranked table with user names, total points, today's points, and their 5 wrestler names. The leading player is highlighted with a visual flourish.
+- **Leaderboard page (home):** Styled like a sports game scoreboard. Ranked table with user names, total points, today's points (with a ★ if kimboshi were scored today), and kimboshi total (shown as ★ stars). The leading player is highlighted with a visual flourish. Clicking a player expands a per-day power-up bar and wrestler breakdown; kimboshi wins are marked with ★ in the wrestler view. Tiebreaker is most kimboshi.
 - **Stable selection page:** 5 tier rows, each showing available wrestlers as selectable pixel-art cards. Wrestlers displayed with name and rank. Drag-and-drop or click to select.
 - **Substitution page:** Shows current stable with swap buttons. Countdown timer for the substitution window. Disabled outside the allowed hours.
+- **Rules tab:** Visible to all users including before login. Bulleted list covering stable tiers, scoring, kimboshi, substitution rules, and tiebreaker.
+- **SUBS tab clash indicator:** An `!` badge appears on the SUBS tab when two wrestlers in your stable are scheduled to face each other the following day.
 - **User selector:** Dropdown with user names + PIN input field. No separate login page -- integrated into the header/nav bar.
 
 ### Design Direction
@@ -220,14 +222,16 @@ Components are ordered by dependency chain. Each step builds on the previous one
 | 2 | Rank tier overlap | M7-12 / M13-17+ (clean split) | Fixed the M12 overlap from original requirements |
 | 3 | Substitution points | Keep accumulated points | Simplest and most intuitive; no penalty for swapping |
 | 4 | Timezone | AEST (Australia/Sydney) | User group is Australian; matches finish ~8pm AEST |
-| 5 | Kimboshi definition | Strict: Maegashira beats Yokozuna only | Traditional definition; rare and exciting when it happens |
+| 5 | Kimboshi definition | Strict: Maegashira beats Yokozuna, excluding Fusen wins | Traditional definition; Fusen excluded because the Yokozuna didn't compete |
 | 6 | Competition scope | Single basho at a time | Clean reset each tournament; no seasonal tracking |
 | 7 | Data sync strategy | Hybrid: auto-poll + manual override | Daily cron at 7:30 PM + 8:00 PM AEST, plus admin button for ad-hoc syncs |
 | 8 | Kyujo handling | Treat as normal losses | No special handling; user can use substitutions strategically |
 | 9 | Tech stack | Next.js + TypeScript + SQLite | Single project, lightweight, perfect for self-hosted small group app |
 | 10 | User guard | Simple 4-digit PIN per user | Prevents accidental changes; not meant as real security |
 | 11 | Admin role | Boolean flag in config per user | Admins can trigger manual syncs and manage basho settings |
-| 12 | Substitution window | 8:00 PM - 2:00 PM AEST | Opens after results are in, closes before next day's bouts |
+| 12 | Substitution window | 8:00 PM - 6:00 PM AEST | Opens after results are in, closes before next day's bouts |
+| 13 | Tiebreaker | Most kimboshi wins ties | Adds a secondary incentive for high-risk tier 1 picks |
+| 14 | Hosting | Fly.io | Container-based deploy with persistent volume for SQLite; simpler than managing a VPS |
 
 ## Implementation Checklist
 
