@@ -8,6 +8,7 @@ interface WrestlerEntry {
   name: string;
   rank: string;
   points: number;
+  kimboshi: number;
 }
 
 interface LeaderboardEntry {
@@ -15,6 +16,7 @@ interface LeaderboardEntry {
   user_name: string;
   total_points: number;
   today_points: number;
+  today_kimboshi: number;
   kimboshi_total: number;
   dailyWrestlers: Record<number, WrestlerEntry[]>;
   dailyPoints: Record<number, number>;
@@ -116,6 +118,7 @@ export function Leaderboard() {
                 </div>
                 <div className="col-span-2 text-right font-pixel text-xs text-retro-green">
                   +{entry.today_points}
+                  {entry.today_kimboshi > 0 && <span className="text-retro-magenta">★</span>}
                 </div>
                 <div className="col-span-2 text-right font-pixel text-sm text-white">
                   {entry.total_points}
@@ -144,7 +147,9 @@ export function Leaderboard() {
                   <span className="font-pixel text-sm text-white">{entry.total_points}</span>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="font-pixel text-xs text-retro-green">+{entry.today_points} TODAY</span>
+                  <span className="font-pixel text-xs text-retro-green">
+                    +{entry.today_points}{entry.today_kimboshi > 0 && <span className="text-retro-magenta">★</span>} TODAY
+                  </span>
                   {entry.kimboshi_total > 0 && (
                     <span className="font-pixel text-xs text-retro-magenta">{"★".repeat(entry.kimboshi_total)} KB</span>
                   )}
@@ -211,7 +216,9 @@ export function Leaderboard() {
                             T{w.tier}: <span className="text-white">{w.name || "???"}</span>
                             <span className="text-retro-cyan ml-1">{w.rank}</span>
                           </span>
-                          <span className="text-retro-green shrink-0">{w.points}W</span>
+                          <span className="text-retro-green shrink-0">
+                            {w.points}W{w.kimboshi > 0 && <span className="text-retro-magenta">★</span>}
+                          </span>
                         </div>
                       ))
                     )}

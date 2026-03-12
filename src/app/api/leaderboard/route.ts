@@ -53,12 +53,12 @@ export async function GET(request: NextRequest) {
       )
       .get(bashoId, user.id) as { total: number; kb: number };
 
-    // Today's points
+    // Today's points and kimboshi
     const todayRow = db
       .prepare(
-        "SELECT COALESCE(points, 0) as points FROM daily_scores WHERE basho_id = ? AND user_id = ? AND day = ?"
+        "SELECT COALESCE(points, 0) as points, COALESCE(kimboshi, 0) as kimboshi FROM daily_scores WHERE basho_id = ? AND user_id = ? AND day = ?"
       )
-      .get(bashoId, user.id, currentDay) as { points: number } | undefined;
+      .get(bashoId, user.id, currentDay) as { points: number; kimboshi: number } | undefined;
 
     // Get original stable + all subs (shared for both dailyWrestlers and current stable)
     const stableRows = db
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build dailyWrestlers: for each day with results, the active stable + wins that day
-    const dailyWrestlers: Record<number, { tier: number; rikishi_id: number; name: string; rank: string; points: number }[]> = {};
+    const dailyWrestlers: Record<number, { tier: number; rikishi_id: number; name: string; rank: string; points: number; kimboshi: number }[]> = {};
 
     for (const { day } of daysWithResults) {
       const tierMap = stableForDay(day);
@@ -99,10 +99,10 @@ export async function GET(request: NextRequest) {
           const r = db
             .prepare("SELECT name, rank FROM rikishi_cache WHERE id = ? AND basho_id = ?")
             .get(rikishi_id, bashoId) as { name: string; rank: string } | undefined;
-          const wins = (db
-            .prepare("SELECT COUNT(*) as w FROM bout_results WHERE basho_id = ? AND winner_id = ? AND day = ?")
-            .get(bashoId, rikishi_id, day) as { w: number }).w;
-          return { tier, rikishi_id, name: r?.name ?? "", rank: r?.rank ?? "", points: wins };
+          const boutStats = db
+            .prepare("SELECT COUNT(*) as w, COALESCE(SUM(is_kimboshi), 0) as kb FROM bout_results WHERE basho_id = ? AND winner_id = ? AND day = ?")
+            .get(bashoId, rikishi_id, day) as { w: number; kb: number };
+          return { tier, rikishi_id, name: r?.name ?? "", rank: r?.rank ?? "", points: boutStats.w, kimboshi: boutStats.kb };
         });
     }
 
@@ -123,6 +123,7 @@ export async function GET(request: NextRequest) {
       user_name: user.name,
       total_points: totalRow.total,
       today_points: todayRow?.points || 0,
+      today_kimboshi: todayRow?.kimboshi || 0,
       kimboshi_total: totalRow.kb,
       dailyWrestlers,
       dailyPoints,
