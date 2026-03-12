@@ -20,7 +20,7 @@ function useSubWindowCountdown() {
       const [month, day, year] = datePart.split("/").map(Number);
       const [hour] = timePart.split(":").map(Number);
 
-      const open = hour >= 20 || hour < 14;
+      const open = hour >= 20 || hour < 18;
       setIsOpen(open);
 
       let targetHour: number;
@@ -30,7 +30,7 @@ function useSubWindowCountdown() {
         if (hour >= 20) {
           targetDay = day + 1;
         }
-        targetHour = 14;
+        targetHour = 18;
       } else {
         targetHour = 20;
       }
