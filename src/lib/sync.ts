@@ -104,9 +104,11 @@ export async function syncDay(
           | undefined;
 
         if (winnerRikishi && loserRikishi) {
+          const isFusen = match.kimarite?.toLowerCase() === "fusen";
           if (
             isMaegashira(winnerRikishi.rank) &&
-            isYokozuna(loserRikishi.rank)
+            isYokozuna(loserRikishi.rank) &&
+            !isFusen
           ) {
             isKimboshi = 1;
           }
