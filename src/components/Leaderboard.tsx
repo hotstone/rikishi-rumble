@@ -72,14 +72,6 @@ export function Leaderboard() {
         </span>
       </div>
 
-      {hasPendingResults && (
-        <div className="bg-retro-red/20 border-2 border-retro-red px-3 py-2 mb-3">
-          <span className="font-pixel text-xs text-retro-red animate-pulse">
-            RESULTS PENDING...
-          </span>
-        </div>
-      )}
-
       {leaderboard.length === 0 ? (
         <div className="text-center py-8">
           <p className="font-pixel text-xs text-gray-400">NO PLAYERS YET</p>
