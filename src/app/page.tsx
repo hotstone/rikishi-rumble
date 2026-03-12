@@ -7,9 +7,10 @@ import { StableSelector } from "@/components/StableSelector";
 import { SubstitutionPanel } from "@/components/SubstitutionPanel";
 import { AdminPanel } from "@/components/AdminPanel";
 import { BashoPage } from "@/components/BashoPage";
+import { RulesPanel } from "@/components/RulesPanel";
 
-type Tab = "leaderboard" | "basho" | "stable" | "substitution" | "admin";
-const VALID_TABS = new Set<Tab>(["leaderboard", "basho", "stable", "substitution", "admin"]);
+type Tab = "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
+const VALID_TABS = new Set<Tab>(["leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
 
 function tabFromHash(): Tab {
   const hash = window.location.hash.slice(1);
@@ -80,6 +81,7 @@ export default function Home() {
   const tabs: { id: Tab; label: string; requiresAuth?: boolean; requiresAdmin?: boolean }[] = [
     { id: "leaderboard", label: "SCORES" },
     { id: "basho", label: "BASHO" },
+    { id: "rules", label: "RULES" },
     { id: "stable", label: "STABLE", requiresAuth: true },
     { id: "substitution", label: "SUBS", requiresAuth: true },
     { id: "admin", label: "ADMIN", requiresAuth: true, requiresAdmin: true },
@@ -143,6 +145,8 @@ export default function Home() {
         {activeTab === "leaderboard" && <Leaderboard />}
 
         {activeTab === "basho" && <BashoPage />}
+
+        {activeTab === "rules" && <RulesPanel />}
 
         {activeTab === "stable" && session && (
           <StableSelector
