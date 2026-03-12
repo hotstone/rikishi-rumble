@@ -33,7 +33,7 @@ export function RulesPanel() {
           <ul className="space-y-1 text-gray-300 list-none">
             <li>- MAX 2 SUBS PER DAY</li>
             <li>- SAME TIER ONLY</li>
-            <li>- WINDOW: 8PM - 2PM AEST</li>
+            <li>- WINDOW: 8PM - 6PM AEST</li>
           </ul>
         </section>
 
