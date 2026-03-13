@@ -23,7 +23,18 @@ interface BashoData {
   boutsByDay: Record<number, Bout[]>;
 }
 
-export function BashoPage() {
+const INITIALS: Record<string, string> = {
+  Matt: "MH",
+  Marc: "MC",
+  Mac: "MR",
+};
+
+function userInitials(name: string): string {
+  return INITIALS[name] || name.charAt(0).toUpperCase();
+}
+
+export function BashoPage({ userName }: { userName?: string }) {
+  const myInitials = userName ? userInitials(userName) : null;
   const [data, setData] = useState<BashoData | null>(null);
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
   const initialLoad = useRef(true);
@@ -128,7 +139,7 @@ export function BashoPage() {
               {isExpanded && (
                 <div className="border-x-2 border-b-2 border-retro-cyan/30 divide-y divide-gray-700/50">
                   {bouts.map((bout, idx) => (
-                    <BoutRow key={idx} bout={bout} />
+                    <BoutRow key={idx} bout={bout} myInitials={myInitials} />
                   ))}
                 </div>
               )}
@@ -140,7 +151,7 @@ export function BashoPage() {
   );
 }
 
-function BoutRow({ bout }: { bout: Bout }) {
+function BoutRow({ bout, myInitials }: { bout: Bout; myInitials: string | null }) {
   const decided = bout.winner_id !== null;
   const eastWon = bout.winner_id === bout.east_id;
   const westWon = bout.winner_id === bout.west_id;
@@ -151,11 +162,11 @@ function BoutRow({ bout }: { bout: Bout }) {
         <WrestlerBox
           name={bout.east_name}
           rank={bout.east_rank}
-
           isWinner={eastWon}
           decided={decided}
           owners={bout.east_owners}
           isKimboshi={eastWon && bout.is_kimboshi}
+          myInitials={myInitials}
         />
 
         <div className="shrink-0 text-center px-1">
@@ -170,11 +181,11 @@ function BoutRow({ bout }: { bout: Bout }) {
         <WrestlerBox
           name={bout.west_name}
           rank={bout.west_rank}
-
           isWinner={westWon}
           decided={decided}
           owners={bout.west_owners}
           isKimboshi={westWon && bout.is_kimboshi}
+          myInitials={myInitials}
         />
       </div>
     </div>
@@ -188,6 +199,7 @@ function WrestlerBox({
   decided,
   owners,
   isKimboshi,
+  myInitials,
 }: {
   name: string;
   rank: string;
@@ -195,6 +207,7 @@ function WrestlerBox({
   decided: boolean;
   owners: string[];
   isKimboshi: boolean;
+  myInitials: string | null;
 }) {
   const borderClass = isWinner
     ? "border-retro-green/60 bg-retro-green/10"
@@ -235,19 +248,24 @@ function WrestlerBox({
         </div>
         {owners.length > 0 && (
           <div className="shrink-0 flex gap-0.5">
-            {owners.map((initials, i) => (
-              <span
-                key={i}
-                className={`font-pixel inline-flex items-center justify-center h-4 px-0.5 border ${
-                  isWinner
-                    ? "border-retro-yellow/60 text-retro-yellow bg-retro-yellow/10"
-                    : "border-gray-600 text-gray-500 bg-transparent"
-                }`}
-                style={{ fontSize: "7px" }}
-              >
-                {initials}
-              </span>
-            ))}
+            {owners.map((initials, i) => {
+              const isMe = initials === myInitials;
+              return (
+                <span
+                  key={i}
+                  className={`font-pixel inline-flex items-center justify-center h-4 px-0.5 border ${
+                    isMe
+                      ? "border-retro-yellow text-retro-yellow bg-retro-yellow/20"
+                      : isWinner
+                        ? "border-retro-yellow/60 text-retro-yellow bg-retro-yellow/10"
+                        : "border-gray-600 text-gray-500 bg-transparent"
+                  }`}
+                  style={{ fontSize: "7px" }}
+                >
+                  {initials}
+                </span>
+              );
+            })}
           </div>
         )}
       </div>
