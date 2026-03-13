@@ -8,6 +8,7 @@ import { SubstitutionPanel } from "@/components/SubstitutionPanel";
 import { AdminPanel } from "@/components/AdminPanel";
 import { BashoPage } from "@/components/BashoPage";
 import { RulesPanel } from "@/components/RulesPanel";
+import { bashoLabel } from "@/lib/basho";
 
 type Tab = "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
 const VALID_TABS = new Set<Tab>(["leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
@@ -98,7 +99,7 @@ export default function Home() {
               </h1>
               {basho && (
                 <p className="font-pixel text-xs text-retro-cyan">
-                  {basho}{currentDay > 0 && ` - DAY ${currentDay}`}
+                  {bashoLabel(basho)}{currentDay > 0 && ` - DAY ${currentDay}`}
                 </p>
               )}
             </div>

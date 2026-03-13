@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { bashoLabel } from "@/lib/basho";
 
 interface WrestlerEntry {
   tier: number;
@@ -70,7 +71,7 @@ export function Leaderboard() {
       <div className="retro-panel-header flex-col sm:flex-row gap-1">
         <h2 className="font-pixel text-sm">SCOREBOARD</h2>
         <span className="font-pixel text-xs text-retro-cyan">
-          BASHO {basho}{currentDay > 0 && ` - DAY ${currentDay}`}
+          {bashoLabel(basho)}{currentDay > 0 && ` - DAY ${currentDay}`}
         </span>
       </div>
 
