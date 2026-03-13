@@ -83,9 +83,6 @@ export function BashoPage({ userName }: { userName?: string }) {
     <div className="retro-panel">
       <div className="retro-panel-header flex-col sm:flex-row gap-1">
         <h2 className="font-pixel text-sm">BASHO</h2>
-        <span className="font-pixel text-xs text-retro-cyan">
-          {basho}{currentDay > 0 && ` - DAY ${currentDay}`}
-        </span>
       </div>
 
       <div className="space-y-1">
