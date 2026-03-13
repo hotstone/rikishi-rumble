@@ -140,26 +140,26 @@ export function Leaderboard() {
                 onClick={() => handleToggleUser(entry.user_id)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-pixel text-xs text-retro-yellow">{rank}</span>
-                    <span className="font-pixel text-xs text-white">
+                  <div className="flex items-center gap-2 min-w-0 mr-2">
+                    <span className="font-pixel text-xs text-retro-yellow shrink-0">{rank}</span>
+                    <span className="font-pixel text-xs text-white truncate">
                       {entry.user_name}
                     </span>
                   </div>
-                  <span className="font-pixel text-sm text-white flex items-center gap-0.5">
-                    {entry.kimboshi_total > 0 && Array.from({ length: entry.kimboshi_total }, (_, i) => (
-                      <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
-                    ))}
-                    {entry.total_points}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="font-pixel text-xs text-retro-green flex items-center gap-0.5">
-                    {entry.today_kimboshi > 0 && Array.from({ length: entry.today_kimboshi }, (_, i) => (
-                      <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
-                    ))}
-                    {entry.today_points} TODAY
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-pixel text-xs text-retro-green flex items-center gap-0.5">
+                      {entry.today_kimboshi > 0 && Array.from({ length: entry.today_kimboshi }, (_, i) => (
+                        <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
+                      ))}
+                      {entry.today_points}
+                    </span>
+                    <span className="font-pixel text-sm text-white flex items-center gap-0.5">
+                      {entry.kimboshi_total > 0 && Array.from({ length: entry.kimboshi_total }, (_, i) => (
+                        <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
+                      ))}
+                      {entry.total_points}
+                    </span>
+                  </div>
                 </div>
               </div>
 
