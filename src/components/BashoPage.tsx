@@ -223,11 +223,6 @@ function WrestlerBox({
       <div className="flex items-center justify-between gap-1">
         <div className="min-w-0">
           <div className="flex items-center gap-1">
-            {isWinner && (
-              <span className="font-pixel text-retro-green shrink-0" style={{ fontSize: "8px" }}>
-                W
-              </span>
-            )}
             <span className={`font-pixel text-xs truncate ${nameClass}`}>
               {name}
             </span>
@@ -237,9 +232,7 @@ function WrestlerBox({
               {rank}
             </span>
             {isKimboshi && (
-              <span className="font-pixel text-retro-magenta" style={{ fontSize: "7px" }}>
-                KIMBOSHI
-              </span>
+              <img src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
             )}
           </div>
         </div>

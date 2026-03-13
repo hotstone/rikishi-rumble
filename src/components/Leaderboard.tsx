@@ -85,10 +85,9 @@ export function Leaderboard() {
           {/* Desktop header */}
           <div className="hidden sm:grid grid-cols-12 gap-1 px-2 py-1 text-retro-cyan font-pixel text-xs">
             <div className="col-span-1">#</div>
-            <div className="col-span-4">PLAYER</div>
-            <div className="col-span-2 text-right">TODAY</div>
-            <div className="col-span-2 text-right">TOTAL</div>
-            <div className="col-span-3 text-right">KIMBOSHI</div>
+            <div className="col-span-5">PLAYER</div>
+            <div className="col-span-3 text-right">TODAY</div>
+            <div className="col-span-3 text-right">TOTAL</div>
           </div>
 
           {leaderboard.map((entry, idx) => {
@@ -114,18 +113,20 @@ export function Leaderboard() {
                 <div className="col-span-1 font-pixel text-xs text-retro-yellow">
                   {rank}
                 </div>
-                <div className="col-span-4 font-pixel text-xs text-white">
+                <div className="col-span-5 font-pixel text-xs text-white">
                   {entry.user_name}
                 </div>
-                <div className="col-span-2 text-right font-pixel text-xs text-retro-green">
-                  +{entry.today_points}
-                  {entry.today_kimboshi > 0 && <span className="text-retro-magenta">★</span>}
+                <div className="col-span-3 text-right font-pixel text-xs text-retro-green flex items-center justify-end gap-0.5">
+                  {entry.today_kimboshi > 0 && Array.from({ length: entry.today_kimboshi }, (_, i) => (
+                    <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
+                  ))}
+                  {entry.today_points}
                 </div>
-                <div className="col-span-2 text-right font-pixel text-sm text-white">
+                <div className="col-span-3 text-right font-pixel text-sm text-white flex items-center justify-end gap-0.5">
+                  {entry.kimboshi_total > 0 && Array.from({ length: entry.kimboshi_total }, (_, i) => (
+                    <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
+                  ))}
                   {entry.total_points}
-                </div>
-                <div className="col-span-3 text-right font-pixel text-xs text-retro-magenta">
-                  {entry.kimboshi_total > 0 ? "★".repeat(entry.kimboshi_total) : "-"}
                 </div>
               </div>
 
@@ -145,15 +146,20 @@ export function Leaderboard() {
                       {entry.user_name}
                     </span>
                   </div>
-                  <span className="font-pixel text-sm text-white">{entry.total_points}</span>
+                  <span className="font-pixel text-sm text-white flex items-center gap-0.5">
+                    {entry.kimboshi_total > 0 && Array.from({ length: entry.kimboshi_total }, (_, i) => (
+                      <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
+                    ))}
+                    {entry.total_points}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="font-pixel text-xs text-retro-green">
-                    +{entry.today_points}{entry.today_kimboshi > 0 && <span className="text-retro-magenta">★</span>} TODAY
+                  <span className="font-pixel text-xs text-retro-green flex items-center gap-0.5">
+                    {entry.today_kimboshi > 0 && Array.from({ length: entry.today_kimboshi }, (_, i) => (
+                      <img key={i} src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />
+                    ))}
+                    {entry.today_points} TODAY
                   </span>
-                  {entry.kimboshi_total > 0 && (
-                    <span className="font-pixel text-xs text-retro-magenta">{"★".repeat(entry.kimboshi_total)} KB</span>
-                  )}
                 </div>
               </div>
 
@@ -217,8 +223,9 @@ export function Leaderboard() {
                             T{w.tier}: <span className="text-white">{w.name || "???"}</span>
                             <span className="text-retro-cyan ml-1">{w.rank}</span>
                           </span>
-                          <span className="text-retro-green shrink-0">
-                            {w.points}W{w.kimboshi > 0 && <span className="text-retro-magenta">★</span>}
+                          <span className="text-retro-green shrink-0 flex items-center gap-0.5">
+                            {w.kimboshi > 0 && <img src="/star.png" className="inline h-3 w-3 align-middle shrink-0" alt="★" />}
+                            {w.points}
                           </span>
                         </div>
                       ))
