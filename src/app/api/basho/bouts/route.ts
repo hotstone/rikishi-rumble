@@ -146,13 +146,21 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const latestDay = db
-    .prepare("SELECT MAX(day) as day FROM bout_results WHERE basho_id = ? AND winner_id IS NOT NULL")
-    .get(bashoId) as { day: number | null };
+  const basho = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
+
+  let currentDay = 0;
+  if (basho?.start_date) {
+    const start = new Date(basho.start_date);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    currentDay = Math.max(0, Math.min(diffDays, 15));
+  }
 
   return NextResponse.json({
     basho: bashoId,
-    currentDay: latestDay?.day || 0,
+    currentDay,
     syncedDays: Array.from(syncedDays),
     boutsByDay,
   });
