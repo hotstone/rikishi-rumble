@@ -82,10 +82,10 @@ export default function Home() {
   const tabs: { id: Tab; label: string; requiresAuth?: boolean; requiresAdmin?: boolean }[] = [
     { id: "leaderboard", label: "SCORES" },
     { id: "basho", label: "BASHO" },
-    { id: "rules", label: "RULES" },
     { id: "stable", label: "STABLE", requiresAuth: true },
     { id: "substitution", label: "SUBS", requiresAuth: true },
     { id: "admin", label: "ADMIN", requiresAuth: true, requiresAdmin: true },
+    { id: "rules", label: "RULES" },
   ];
 
   return (
