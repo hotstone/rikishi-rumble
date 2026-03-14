@@ -119,9 +119,6 @@ export function BashoPage({ userName }: { userName?: string }) {
                     }`}
                   >
                     DAY {day}
-                    {day === currentDay && (
-                      <span className="text-retro-yellow ml-2">LATEST</span>
-                    )}
                   </span>
                   <span className="font-pixel text-xs text-gray-500">
                     {hasBouts
