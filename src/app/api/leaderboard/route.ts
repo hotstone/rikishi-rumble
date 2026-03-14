@@ -115,13 +115,15 @@ export async function GET(request: NextRequest) {
     // Daily scores for power-up bar
     const dailyScores = db
       .prepare(
-        "SELECT day, points FROM daily_scores WHERE basho_id = ? AND user_id = ? ORDER BY day"
+        "SELECT day, points, kimboshi FROM daily_scores WHERE basho_id = ? AND user_id = ? ORDER BY day"
       )
-      .all(bashoId, user.id) as { day: number; points: number }[];
+      .all(bashoId, user.id) as { day: number; points: number; kimboshi: number }[];
 
     const dailyPoints: Record<number, number> = {};
+    const dailyKimboshi: Record<number, number> = {};
     for (const ds of dailyScores) {
       dailyPoints[ds.day] = ds.points;
+      dailyKimboshi[ds.day] = ds.kimboshi;
     }
 
     return {
@@ -133,6 +135,7 @@ export async function GET(request: NextRequest) {
       kimboshi_total: totalRow.kb,
       dailyWrestlers,
       dailyPoints,
+      dailyKimboshi,
     };
   });
 
