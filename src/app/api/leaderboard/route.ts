@@ -9,13 +9,19 @@ export async function GET(request: NextRequest) {
 
   const db = getDb();
 
-  const latestDay = db
+  const latestBoutDay = db
     .prepare(
       "SELECT MAX(day) as day FROM bout_results WHERE basho_id = ? AND winner_id IS NOT NULL"
     )
     .get(bashoId) as { day: number | null };
 
-  const currentDay = latestDay?.day || 0;
+  const latestScoreDay = db
+    .prepare(
+      "SELECT MAX(day) as day FROM daily_scores WHERE basho_id = ?"
+    )
+    .get(bashoId) as { day: number | null };
+
+  const currentDay = latestBoutDay?.day || latestScoreDay?.day || 0;
 
   // activeDay: a day with partial results (in progress), fallback to currentDay
   const activeDayRow = db
