@@ -22,7 +22,7 @@ export default function Home() {
   const { session, login, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("leaderboard");
   const [pin, setPin] = useState("");
-  const [scanlines, setScanlines] = useState(false);
+  const scanlines = true;
   const [basho, setBasho] = useState("");
   const [currentDay, setCurrentDay] = useState(0);
   const [hasSubClash, setHasSubClash] = useState(false);
@@ -104,13 +104,6 @@ export default function Home() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setScanlines(!scanlines)}
-                className="retro-btn text-xs px-2 py-1 opacity-50 hover:opacity-100"
-                title="Toggle CRT effect"
-              >
-                CRT
-              </button>
               <UserAuth
                 session={session}
                 onLogin={handleLogin}
