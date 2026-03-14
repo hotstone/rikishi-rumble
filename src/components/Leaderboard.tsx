@@ -179,20 +179,19 @@ export function Leaderboard() {
                               }}
                             >
                               <div
-                                className={`w-full h-4 relative overflow-hidden ${played ? "cursor-pointer" : ""} ${
+                                className={`w-full h-4 relative overflow-hidden bg-gray-700 ${played ? "cursor-pointer" : ""} ${
                                   isSelected
                                     ? "border-2 border-white"
                                     : "border border-black/30"
-                                } ${played ? "bg-retro-green" : "bg-gray-700"}`}
+                                }`}
                                 title={played ? `Day ${day}: ${points}pts` : `Day ${day}`}
                               >
-                                {played && Array.from({ length: points }, (_, j) => (
+                                {played && points > 0 && (
                                   <div
-                                    key={j}
-                                    className="absolute w-full border-t border-black/40"
-                                    style={{ bottom: `${(j + 1) * 3}px` }}
+                                    className="absolute bottom-0 w-full bg-retro-green"
+                                    style={{ height: `${(Math.min(points, 7) / 7) * 100}%` }}
                                   />
-                                ))}
+                                )}
                               </div>
                             </div>
                           );
