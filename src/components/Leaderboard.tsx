@@ -169,7 +169,6 @@ export function Leaderboard() {
                           const day = i + 1;
                           const played = day <= currentDay;
                           const points = entry.dailyPoints[day] ?? 0;
-                          const kimboshi = entry.dailyKimboshi?.[day] ?? 0;
                           const isSelected = day === displayDay;
                           return (
                             <div
@@ -193,9 +192,6 @@ export function Leaderboard() {
                                     className="absolute bottom-0 w-full bg-retro-green"
                                     style={{ height: `${(Math.min(points, 7) / 7) * 100}%` }}
                                   />
-                                )}
-                                {played && kimboshi > 0 && (
-                                  <img src="/star.png" className="absolute top-0 left-1/2 -translate-x-1/2 h-3 w-3 z-10" alt="★" />
                                 )}
                               </div>
                             </div>
