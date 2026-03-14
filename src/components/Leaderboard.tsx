@@ -23,14 +23,6 @@ interface LeaderboardEntry {
   dailyPoints: Record<number, number>;
 }
 
-function getDayColor(points: number): string {
-  if (points === 0) return "bg-retro-red";
-  if (points <= 1) return "bg-orange-500";
-  if (points <= 2) return "bg-retro-yellow";
-  if (points <= 3) return "bg-lime-500";
-  if (points <= 4) return "bg-retro-green";
-  return "bg-retro-cyan";
-}
 
 interface LeaderboardData {
   leaderboard: LeaderboardEntry[];
@@ -187,16 +179,21 @@ export function Leaderboard() {
                               }}
                             >
                               <div
-                                className={`w-full h-4 ${played ? "cursor-pointer" : ""} ${
+                                className={`w-full h-4 relative overflow-hidden ${played ? "cursor-pointer" : ""} ${
                                   isSelected
                                     ? "border-2 border-white"
                                     : "border border-black/30"
-                                } ${played ? getDayColor(points) : "bg-gray-700"}`}
+                                } ${played ? "bg-retro-green" : "bg-gray-700"}`}
                                 title={played ? `Day ${day}: ${points}pts` : `Day ${day}`}
-                              />
-                              <span className="font-pixel text-gray-500 mt-0.5 leading-none" style={{ fontSize: "6px" }}>
-                                {day}
-                              </span>
+                              >
+                                {played && Array.from({ length: points }, (_, j) => (
+                                  <div
+                                    key={j}
+                                    className="absolute w-full border-t border-black/40"
+                                    style={{ bottom: `${(j + 1) * 3}px` }}
+                                  />
+                                ))}
+                              </div>
                             </div>
                           );
                         })}
