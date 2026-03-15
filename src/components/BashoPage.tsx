@@ -55,7 +55,7 @@ export function BashoPage({ userName }: { userName?: string }) {
     fetchData();
   }, [fetchData]);
 
-  // Poll every 3 minutes if the current day is partially decided
+  // Poll every 30 seconds if the current day is partially decided
   useEffect(() => {
     if (!data || data.currentDay === 0) return;
     const bouts = data.boutsByDay[data.currentDay] || [];
@@ -64,7 +64,7 @@ export function BashoPage({ userName }: { userName?: string }) {
 
     if (!inProgress) return;
 
-    const interval = setInterval(fetchData, 60 * 1000);
+    const interval = setInterval(fetchData, 30 * 1000);
     return () => clearInterval(interval);
   }, [data, fetchData]);
 
