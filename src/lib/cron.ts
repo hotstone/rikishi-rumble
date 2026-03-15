@@ -41,5 +41,21 @@ export function startCronJobs() {
     { timezone: "Australia/Sydney" }
   );
 
-  console.log("[cron] Scheduled sync jobs at 7:30 PM and 8:00 PM AEST");
+  // Every 2 minutes between 6:00 PM and 7:58 PM AEST
+  cron.schedule(
+    "*/2 18-19 * * *",
+    async () => {
+      console.log("[cron] Running 2-min interval sync (6-8 PM AEST)...");
+      try {
+        const config = getConfig();
+        const result = await syncAllDays(config.basho);
+        console.log(`[cron] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
+      } catch (error) {
+        console.error("[cron] Sync failed:", error);
+      }
+    },
+    { timezone: "Australia/Sydney" }
+  );
+
+  console.log("[cron] Scheduled sync jobs: 7:30 PM, 8:00 PM, and every 2 min 6-8 PM AEST");
 }
