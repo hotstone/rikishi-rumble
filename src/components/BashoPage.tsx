@@ -152,7 +152,7 @@ function BoutRow({ bout, myInitials }: { bout: Bout; myInitials: string | null }
 
   return (
     <div className="px-2 sm:px-3 py-2">
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-stretch gap-1 sm:gap-2">
         <WrestlerBox
           name={bout.east_name}
           rank={bout.east_rank}
@@ -163,10 +163,10 @@ function BoutRow({ bout, myInitials }: { bout: Bout; myInitials: string | null }
           myInitials={myInitials}
         />
 
-        <div className="shrink-0 text-center px-1">
+        <div className="shrink-0 flex flex-col items-center justify-center px-1">
           <span className="font-pixel text-xs text-gray-500">VS</span>
           {bout.kimarite && (
-            <div className="font-pixel text-gray-600 leading-tight" style={{ fontSize: "6px" }}>
+            <div className="font-pixel text-retro-green leading-tight" style={{ fontSize: "6px" }}>
               {bout.kimarite}
             </div>
           )}
@@ -217,7 +217,7 @@ function WrestlerBox({
 
   return (
     <div className={`flex-1 min-w-0 border-2 px-2 py-1.5 ${borderClass}`}>
-      <div className="flex items-center justify-between gap-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
         <div className="min-w-0">
           <div className="flex items-center gap-1">
             <span className={`font-pixel text-xs truncate ${nameClass}`}>
@@ -233,8 +233,7 @@ function WrestlerBox({
             )}
           </div>
         </div>
-        {owners.length > 0 && (
-          <div className="shrink-0 flex gap-0.5">
+        <div className="shrink-0 flex gap-0.5 min-h-[16px]">
             {owners.map((initials, i) => {
               const isMe = initials === myInitials;
               return (
@@ -254,7 +253,6 @@ function WrestlerBox({
               );
             })}
           </div>
-        )}
       </div>
     </div>
   );
