@@ -77,7 +77,7 @@ export function UserAuth({
       <div className="flex items-center gap-3">
         <span className="text-retro-yellow font-pixel text-xs">
           {session.name}
-          {session.admin && " [ADMIN]"}
+          {session.admin && " *"}
         </span>
         <button
           onClick={onLogout}
