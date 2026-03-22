@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getConfig } from "@/lib/config";
+import { isSubstitutionWindowOpen } from "@/lib/substitution";
 
 export async function GET(request: NextRequest) {
   const config = getConfig();
   const bashoId =
     request.nextUrl.searchParams.get("basho") || config.basho;
+  const requestingUserId = request.nextUrl.searchParams.get("userId") || null;
 
   const db = getDb();
 
@@ -108,6 +110,28 @@ export async function GET(request: NextRequest) {
     }
 
     rikishiOwners[day] = dayOwners;
+  }
+
+  // During substitution window, hide other users' owners for undecided days
+  const windowOpen = isSubstitutionWindowOpen();
+  if (windowOpen) {
+    const decidedByDay = new Map<number, boolean>();
+    for (const bout of bouts) {
+      if (!decidedByDay.has(bout.day)) decidedByDay.set(bout.day, true);
+      if (!bout.winner_id) decidedByDay.set(bout.day, false);
+    }
+    for (const [day, allDecided] of decidedByDay) {
+      if (!allDecided && rikishiOwners[day]) {
+        for (const rikishiId of Object.keys(rikishiOwners[day]).map(Number)) {
+          rikishiOwners[day][rikishiId] = rikishiOwners[day][rikishiId].filter(
+            (initials) => {
+              if (!requestingUserId) return false;
+              return initials === userInitials[requestingUserId];
+            }
+          );
+        }
+      }
+    }
   }
 
   // Group bouts by day

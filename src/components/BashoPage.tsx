@@ -39,8 +39,15 @@ export function BashoPage({ userName }: { userName?: string }) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
   const initialLoad = useRef(true);
 
+  const userId = userName
+    ? userName.toLowerCase().replace(/\s+/g, "-")
+    : null;
+
   const fetchData = useCallback(() => {
-    fetch("/api/basho/bouts")
+    const url = userId
+      ? `/api/basho/bouts?userId=${encodeURIComponent(userId)}`
+      : "/api/basho/bouts";
+    fetch(url)
       .then((r) => r.json())
       .then((d: BashoData) => {
         setData(d);
@@ -49,7 +56,7 @@ export function BashoPage({ userName }: { userName?: string }) {
           initialLoad.current = false;
         }
       });
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchData();
@@ -216,7 +223,7 @@ function WrestlerBox({
       : "text-white";
 
   return (
-    <div className={`flex-1 min-w-0 border-2 px-2 py-1.5 ${borderClass}`}>
+    <div className={`flex-1 w-0 overflow-hidden border-2 px-2 py-1.5 ${borderClass}`}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
         <div className="min-w-0">
           <div className="flex items-center gap-1">
