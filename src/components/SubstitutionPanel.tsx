@@ -133,18 +133,21 @@ export function SubstitutionPanel({
   const [currentDay, setCurrentDay] = useState(1);
 
   const loadData = useCallback(async () => {
-    const [stableRes, wrestlerRes, subRes, lbRes, boutsRes] = await Promise.all([
+    const [stableRes, subRes, lbRes, boutsRes] = await Promise.all([
       fetch(`/api/stable?userId=${userId}`).then((r) => r.json()),
-      fetch("/api/wrestlers").then((r) => r.json()),
       fetch(`/api/substitution?userId=${userId}`).then((r) => r.json()),
       fetch("/api/leaderboard").then((r) => r.json()),
       fetch("/api/basho/bouts").then((r) => r.json()),
     ]);
 
+    const day = lbRes.currentDay || 1;
+    const nextDay = day + 1;
+    const wrestlerRes = await fetch(`/api/wrestlers?day=${nextDay}`).then((r) => r.json());
+
     setStable(stableRes.stable);
     setWrestlers(wrestlerRes.wrestlers);
     setSubstitutions(subRes.substitutions);
-    setCurrentDay(lbRes.currentDay || 1);
+    setCurrentDay(day);
     setBoutsByDay(boutsRes.boutsByDay || {});
   }, [userId]);
 
