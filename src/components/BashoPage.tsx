@@ -39,8 +39,15 @@ export function BashoPage({ userName }: { userName?: string }) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
   const initialLoad = useRef(true);
 
+  const userId = userName
+    ? userName.toLowerCase().replace(/\s+/g, "-")
+    : null;
+
   const fetchData = useCallback(() => {
-    fetch("/api/basho/bouts")
+    const url = userId
+      ? `/api/basho/bouts?userId=${encodeURIComponent(userId)}`
+      : "/api/basho/bouts";
+    fetch(url)
       .then((r) => r.json())
       .then((d: BashoData) => {
         setData(d);
@@ -49,13 +56,13 @@ export function BashoPage({ userName }: { userName?: string }) {
           initialLoad.current = false;
         }
       });
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Poll every 3 minutes if the current day is partially decided
+  // Poll every 30 seconds if the current day is partially decided
   useEffect(() => {
     if (!data || data.currentDay === 0) return;
     const bouts = data.boutsByDay[data.currentDay] || [];
@@ -64,7 +71,7 @@ export function BashoPage({ userName }: { userName?: string }) {
 
     if (!inProgress) return;
 
-    const interval = setInterval(fetchData, 60 * 1000);
+    const interval = setInterval(fetchData, 30 * 1000);
     return () => clearInterval(interval);
   }, [data, fetchData]);
 
@@ -152,7 +159,7 @@ function BoutRow({ bout, myInitials }: { bout: Bout; myInitials: string | null }
 
   return (
     <div className="px-2 sm:px-3 py-2">
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-stretch gap-1 sm:gap-2">
         <WrestlerBox
           name={bout.east_name}
           rank={bout.east_rank}
@@ -163,10 +170,10 @@ function BoutRow({ bout, myInitials }: { bout: Bout; myInitials: string | null }
           myInitials={myInitials}
         />
 
-        <div className="shrink-0 text-center px-1">
+        <div className="shrink-0 flex flex-col items-center justify-center px-1">
           <span className="font-pixel text-xs text-gray-500">VS</span>
           {bout.kimarite && (
-            <div className="font-pixel text-gray-600 leading-tight" style={{ fontSize: "6px" }}>
+            <div className="font-pixel text-retro-green leading-tight" style={{ fontSize: "6px" }}>
               {bout.kimarite}
             </div>
           )}
@@ -216,8 +223,8 @@ function WrestlerBox({
       : "text-white";
 
   return (
-    <div className={`flex-1 min-w-0 border-2 px-2 py-1.5 ${borderClass}`}>
-      <div className="flex items-center justify-between gap-1">
+    <div className={`flex-1 w-0 overflow-hidden border-2 px-2 py-1.5 ${borderClass}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
         <div className="min-w-0">
           <div className="flex items-center gap-1">
             <span className={`font-pixel text-xs truncate ${nameClass}`}>
@@ -233,8 +240,7 @@ function WrestlerBox({
             )}
           </div>
         </div>
-        {owners.length > 0 && (
-          <div className="shrink-0 flex gap-0.5">
+        <div className="shrink-0 flex gap-0.5 min-h-[16px]">
             {owners.map((initials, i) => {
               const isMe = initials === myInitials;
               return (
@@ -254,7 +260,6 @@ function WrestlerBox({
               );
             })}
           </div>
-        )}
       </div>
     </div>
   );

@@ -84,8 +84,8 @@ export default function Home() {
     { id: "basho", label: "BASHO" },
     { id: "stable", label: "STABLE", requiresAuth: true },
     { id: "substitution", label: "SUBS", requiresAuth: true },
-    { id: "admin", label: "ADMIN", requiresAuth: true, requiresAdmin: true },
     { id: "rules", label: "RULES" },
+    { id: "admin", label: "ADMIN", requiresAuth: true, requiresAdmin: true },
   ];
 
   return (

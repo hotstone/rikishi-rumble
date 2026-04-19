@@ -140,6 +140,27 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
         )}
       </div>
 
+      {/* Cron control — Matt only */}
+      {userName === "Matt" && (
+        <div className="mt-4 border-t-2 border-retro-border pt-4">
+          <h3 className="font-pixel text-xs text-retro-cyan mb-3">CRON JOBS</h3>
+          <button
+            onClick={async () => {
+              const res = await fetch("/api/cron", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userName }),
+              });
+              const data = await res.json();
+              setMessage(data.message || data.error || "DONE");
+            }}
+            className="retro-btn w-full text-xs py-2"
+          >
+            START CRON JOBS
+          </button>
+        </div>
+      )}
+
       {/* PIN Management */}
       <div className="mt-4 border-t-2 border-retro-border pt-4">
         <h3 className="font-pixel text-xs text-retro-cyan mb-3">CHANGE USER PIN</h3>
