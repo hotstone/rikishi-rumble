@@ -102,12 +102,12 @@ function initializeSchema(db: Database.Database) {
 }
 
 function migrateSchema(db: Database.Database) {
-  const columns = db.prepare("PRAGMA table_info(bout_results)").all() as { name: string; notnull: number }[];
-  const colNames = new Set(columns.map((c) => c.name));
+  // Bout results migration: add east_id/west_id columns
+  const boutCols = db.prepare("PRAGMA table_info(bout_results)").all() as { name: string; notnull: number }[];
+  const boutColNames = new Set(boutCols.map((c) => c.name));
 
-  // Need to recreate table if east_id is missing or winner_id is NOT NULL
-  const winnerCol = columns.find((c) => c.name === "winner_id");
-  const needsRecreate = !colNames.has("east_id") || (winnerCol && winnerCol.notnull === 1);
+  const winnerCol = boutCols.find((c) => c.name === "winner_id");
+  const needsRecreate = !boutColNames.has("east_id") || (winnerCol && winnerCol.notnull === 1);
 
   if (needsRecreate) {
     db.exec(`
@@ -124,20 +124,31 @@ function migrateSchema(db: Database.Database) {
       );
       INSERT INTO bout_results_new (id, basho_id, day, east_id, west_id, winner_id, loser_id, kimarite, is_kimboshi)
         SELECT id, basho_id, day,
-          COALESCE(${colNames.has("east_id") ? "east_id" : "winner_id"}, winner_id),
-          COALESCE(${colNames.has("west_id") ? "west_id" : "loser_id"}, loser_id),
+          COALESCE(${boutColNames.has("east_id") ? "east_id" : "winner_id"}, winner_id),
+          COALESCE(${boutColNames.has("west_id") ? "west_id" : "loser_id"}, loser_id),
           winner_id, loser_id, kimarite, is_kimboshi
         FROM bout_results;
       DROP TABLE bout_results;
       ALTER TABLE bout_results_new RENAME TO bout_results;
     `);
   }
+
+  // Users migration: add password_hash and admin columns
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  const userColNames = new Set(userCols.map((c) => c.name));
+
+  if (!userColNames.has("password_hash")) {
+    db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
+  }
+  if (!userColNames.has("admin")) {
+    db.exec("ALTER TABLE users ADD COLUMN admin INTEGER DEFAULT 0");
+  }
 }
 
 function syncUsersFromConfig(db: Database.Database) {
   const config = getConfig();
   const upsert = db.prepare(
-    "INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name"
+    "INSERT INTO users (id, name, admin) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, admin = excluded.admin"
   );
   const ensureBasho = db.prepare(
     "INSERT OR IGNORE INTO basho (id, status) VALUES (?, 'active')"
@@ -146,7 +157,7 @@ function syncUsersFromConfig(db: Database.Database) {
   const transaction = db.transaction(() => {
     for (const user of config.users) {
       const id = user.name.toLowerCase().replace(/\s+/g, "-");
-      upsert.run(id, user.name);
+      upsert.run(id, user.name, user.admin ? 1 : 0);
     }
     ensureBasho.run(config.basho);
   });
