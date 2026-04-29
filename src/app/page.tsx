@@ -10,41 +10,44 @@ import { BashoPage } from "@/components/BashoPage";
 import { RulesPanel } from "@/components/RulesPanel";
 import { bashoLabel } from "@/lib/basho";
 
-type Tab = "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
-const VALID_TABS = new Set<Tab>(["leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
+type Tab = "home" | "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
+const VALID_TABS = new Set<Tab>(["home", "leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
 
-function tabFromHash(): Tab {
+function tabFromHash(loggedIn: boolean): Tab {
   const hash = window.location.hash.slice(1);
-  return VALID_TABS.has(hash as Tab) ? (hash as Tab) : "leaderboard";
+  if (VALID_TABS.has(hash as Tab)) return hash as Tab;
+  return loggedIn ? "leaderboard" : "home";
 }
 
 export default function Home() {
   const { session, login, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>("leaderboard");
-  const [pin, setPin] = useState("");
+  const [activeTab, setActiveTab] = useState<Tab>("home");
   const scanlines = true;
   const [basho, setBasho] = useState("");
   const [currentDay, setCurrentDay] = useState(0);
   const [hasSubClash, setHasSubClash] = useState(false);
 
   useEffect(() => {
-    setActiveTab(tabFromHash());
-    const onPopState = () => setActiveTab(tabFromHash());
+    setActiveTab(tabFromHash(!!session));
+    const onPopState = () => setActiveTab(tabFromHash(!!session));
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
+  }, [session]);
+
+  // Fetch basho info (public endpoint) always
+  useEffect(() => {
+    fetch("/api/basho")
+      .then((r) => r.json())
+      .then((data) => setBasho(data.basho || ""));
   }, []);
 
+  // Fetch leaderboard data when logged in
   useEffect(() => {
-    const stored = localStorage.getItem("rikishi-pin");
-    if (stored) setPin(stored);
-    Promise.all([
-      fetch("/api/basho").then((r) => r.json()),
-      fetch("/api/leaderboard").then((r) => r.json()),
-    ]).then(([bashoData, lbData]) => {
-      setBasho(bashoData.basho || "");
-      setCurrentDay(lbData.currentDay || 0);
-    });
-  }, []);
+    if (!session) return;
+    fetch("/api/leaderboard")
+      .then((r) => r.json())
+      .then((data) => setCurrentDay(data.currentDay || 0));
+  }, [session]);
 
   useEffect(() => {
     if (!session || currentDay === 0) return;
@@ -65,28 +68,31 @@ export default function Home() {
 
   const handleLogin = (user: { userId: string; name: string; admin: boolean }) => {
     login(user);
-    const pinInput = document.querySelector<HTMLInputElement>('input[type="password"]');
-    if (pinInput) {
-      setPin(pinInput.value);
-      localStorage.setItem("rikishi-pin", pinInput.value);
-    }
+    navigateTo("leaderboard");
   };
 
   const handleLogout = () => {
     logout();
-    setPin("");
-    localStorage.removeItem("rikishi-pin");
-    navigateTo("leaderboard");
+    navigateTo("home");
   };
 
-  const tabs: { id: Tab; label: string; requiresAuth?: boolean; requiresAdmin?: boolean }[] = [
+  // Tabs for logged-in users
+  const authedTabs: { id: Tab; label: string; requiresAdmin?: boolean }[] = [
     { id: "leaderboard", label: "SCORES" },
     { id: "basho", label: "BASHO" },
-    { id: "stable", label: "STABLE", requiresAuth: true },
-    { id: "substitution", label: "SUBS", requiresAuth: true },
+    { id: "stable", label: "STABLE" },
+    { id: "substitution", label: "SUBS" },
     { id: "rules", label: "RULES" },
-    { id: "admin", label: "ADMIN", requiresAuth: true, requiresAdmin: true },
+    { id: "admin", label: "ADMIN", requiresAdmin: true },
   ];
+
+  // Tabs for landing page (not logged in)
+  const publicTabs: { id: Tab; label: string }[] = [
+    { id: "home", label: "HOME" },
+    { id: "rules", label: "RULES" },
+  ];
+
+  const visibleTabs = session ? authedTabs : publicTabs;
 
   return (
     <div className={`min-h-screen ${scanlines ? "scanlines" : ""}`}>
@@ -113,9 +119,8 @@ export default function Home() {
           </div>
 
           <nav className="flex gap-1 overflow-x-auto">
-            {tabs.map((tab) => {
-              if (tab.requiresAuth && !session) return null;
-              if (tab.requiresAdmin && !session?.admin) return null;
+            {visibleTabs.map((tab) => {
+              if ("requiresAdmin" in tab && tab.requiresAdmin && !session?.admin) return null;
               return (
                 <button
                   key={tab.id}
@@ -136,17 +141,44 @@ export default function Home() {
       </header>
 
       <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        {activeTab === "leaderboard" && <Leaderboard />}
-
-        {activeTab === "basho" && <BashoPage userName={session?.name} />}
+        {/* Public pages */}
+        {activeTab === "home" && !session && (
+          <div className="retro-panel">
+            <div className="retro-panel-header">
+              <h2 className="font-pixel text-sm">WELCOME</h2>
+            </div>
+            <div className="space-y-4 font-pixel text-xs">
+              <p className="text-retro-cyan">
+                WELCOME TO RIKISHI RUMBLE - THE SUMO TIPPING GAME!
+              </p>
+              <p className="text-gray-300">
+                BUILD YOUR STABLE OF 5 WRESTLERS ACROSS 5 RANK TIERS.
+                EARN POINTS WHEN YOUR WRESTLERS WIN THEIR BOUTS DURING
+                THE 15-DAY BASHO TOURNAMENT.
+              </p>
+              <p className="text-gray-300">
+                SCORE BONUS KIMBOSHI POINTS WHEN YOUR MAEGASHIRA
+                DEFEATS A YOKOZUNA. MAKE STRATEGIC SUBSTITUTIONS EACH
+                EVENING TO STAY AHEAD OF THE COMPETITION.
+              </p>
+              <p className="text-retro-yellow">
+                LOG IN TO GET STARTED!
+              </p>
+            </div>
+          </div>
+        )}
 
         {activeTab === "rules" && <RulesPanel />}
+
+        {/* Authenticated pages */}
+        {activeTab === "leaderboard" && session && <Leaderboard />}
+
+        {activeTab === "basho" && session && <BashoPage userName={session?.name} />}
 
         {activeTab === "stable" && session && (
           <StableSelector
             userId={session.userId}
             userName={session.name}
-            pin={pin}
           />
         )}
 
@@ -154,12 +186,11 @@ export default function Home() {
           <SubstitutionPanel
             userId={session.userId}
             userName={session.name}
-            pin={pin}
           />
         )}
 
         {activeTab === "admin" && session?.admin && (
-          <AdminPanel userName={session.name} pin={pin} />
+          <AdminPanel userName={session.name} />
         )}
       </main>
 

@@ -52,11 +52,9 @@ function useCountdown(targetDate: Date | null) {
 export function StableSelector({
   userId,
   userName,
-  pin,
 }: {
   userId: string;
   userName: string;
-  pin: string;
 }) {
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [picks, setPicks] = useState<Record<number, number>>({});
@@ -114,7 +112,7 @@ export function StableSelector({
     const res = await fetch("/api/stable", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userName, pin, picks: picksArray }),
+      body: JSON.stringify({ picks: picksArray }),
     });
 
     if (res.ok) {

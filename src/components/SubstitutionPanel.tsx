@@ -112,11 +112,9 @@ function detectClashes(stableIds: Set<number>, bouts: Bout[]): ClashInfo[] {
 export function SubstitutionPanel({
   userId,
   userName,
-  pin,
 }: {
   userId: string;
   userName: string;
-  pin: string;
 }) {
   const [stable, setStable] = useState<StableEntry[]>([]);
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
@@ -178,8 +176,6 @@ export function SubstitutionPanel({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userName,
-        pin,
         tier,
         newRikishiId,
         day: currentDay,

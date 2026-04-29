@@ -6,7 +6,7 @@
 
 The app pulls real match data from the `sumo-api.com` public API, automatically calculates scores, and displays a live leaderboard. Users can make limited substitutions to their stable each evening. The visual theme is inspired by 80s Japanese 8-bit sports games, specifically the Kunio-kun / Nekketsu series.
 
-The app is designed for a small, trusted group of 5-15 users defined in a config file. There is no full authentication system -- users select their name from a dropdown and enter a simple 4-digit PIN to make changes.
+The app is designed for a small, trusted group of 5-15 users defined in a config file. Users authenticate with a password (bcrypt-hashed, stored in SQLite). All pages and API routes require authentication -- nothing is visible without logging in.
 
 ## Goals & Non-Goals
 
@@ -18,10 +18,10 @@ The app is designed for a small, trusted group of 5-15 users defined in a config
 - Support mid-basho wrestler substitutions (up to 2 per day within a defined window)
 - Award bonus points for kimboshi (Maegashira beating a Yokozuna)
 - Deliver a fun, retro 8-bit Kunio-kun visual experience
+- Secure all pages and API routes behind password-based authentication
 
 ### Non-Goals
 
-- Full user authentication / account creation system
 - Multi-basho / seasonal cumulative scoring -- each basho is standalone
 - Coverage of lower divisions (Juryo, Makushita, etc.) -- Makuuchi only
 - Mobile app -- web-only, responsive design
@@ -29,11 +29,28 @@ The app is designed for a small, trusted group of 5-15 users defined in a config
 
 ## Users & Access
 
-Users are defined in a JSON or YAML config file managed by an admin. Each user entry contains a display name, a 4-digit PIN, and an `admin` boolean flag. Admin users can trigger manual data syncs and manage basho settings. There is no registration flow -- users are added manually by the person running the app.
+Users are defined in `config.json` managed by an admin. Each user entry contains a display name, an optional legacy PIN (for migration), and an `admin` boolean flag. Admin users can trigger manual data syncs and manage user passwords.
 
-To interact with the site, a user selects their name from a dropdown and enters their PIN. The PIN is a lightweight guard against accidental changes -- it is not a security mechanism against determined attackers. PINs are stored in plaintext in the config file since the threat model is "trusted friends."
+### Authentication
 
-The config file also defines the timezone for the substitution window (AEST) and other app-level settings like the current basho identifier.
+Users authenticate with a password (minimum 8 characters). Passwords are hashed with bcrypt (cost factor 10) and stored in the `users` SQLite table. Sessions are managed via a `rikishi-session` cookie (non-HttpOnly, SameSite=Lax, 30-day expiry) containing `{ userId, name, admin }`.
+
+All pages and API routes are protected:
+- **Next.js middleware** gates all `/api/*` routes (except `/api/auth/*`) — returns 401 without a valid session cookie
+- **Front page** shows only a login form when not authenticated — no leaderboard, basho info, or tabs are visible
+- **API routes** that perform writes additionally validate the session to determine user identity (replacing the old PIN-in-body approach)
+
+### Migration from PIN
+
+Existing users who have not yet set a password are prompted to do so on first login:
+1. User enters their old 4-digit PIN as "password"
+2. Server validates the PIN against `config.json` and returns `needsPassword: true`
+3. User sets a new password (8+ chars) via the "Set Your Password" form
+4. Future logins use the new password only
+
+Admins can reset a user's password (clears `password_hash`), forcing them through the PIN migration flow again.
+
+The config file defines the timezone for the substitution window (AEST) and other app-level settings like the current basho identifier.
 
 **Example config structure:**
 

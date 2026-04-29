@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getConfig, validatePin } from "@/lib/config";
+import { getConfig } from "@/lib/config";
 import { isSubstitutionWindowOpen } from "@/lib/substitution";
+import { getSessionFromRequest } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
@@ -34,17 +35,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { userName, pin, tier, newRikishiId, day } = await request.json();
-
-  if (!userName || !pin || !tier || !newRikishiId || !day) {
-    return NextResponse.json(
-      { error: "userName, pin, tier, newRikishiId, and day required" },
-      { status: 400 }
-    );
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  if (!validatePin(userName, pin)) {
-    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
+  const { tier, newRikishiId, day } = await request.json();
+
+  if (!tier || !newRikishiId || !day) {
+    return NextResponse.json(
+      { error: "tier, newRikishiId, and day required" },
+      { status: 400 }
+    );
   }
 
   if (!isSubstitutionWindowOpen()) {
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   const config = getConfig();
   const bashoId = config.basho;
-  const userId = userName.toLowerCase().replace(/\s+/g, "-");
+  const userId = session.userId;
   const db = getDb();
 
   // Check daily substitution limit (2 per day)

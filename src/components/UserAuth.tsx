@@ -2,38 +2,46 @@
 
 import { useState, useEffect } from "react";
 
-interface UserSession {
+export interface UserSession {
   userId: string;
   name: string;
   admin: boolean;
 }
 
-interface UserOption {
-  id: string;
-  name: string;
-}
-
 export function useAuth() {
   const [session, setSession] = useState<UserSession | null>(null);
-  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("rikishi-session");
-    if (stored) setSession(JSON.parse(stored));
-    setHydrated(true);
+    const cookie = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("rikishi-session="));
+    if (cookie) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(cookie.split("=")[1]));
+        if (parsed.userId && parsed.name) {
+          setSession(parsed);
+        }
+      } catch {
+        // Invalid cookie
+      }
+    }
   }, []);
 
   const login = (user: UserSession) => {
-    localStorage.setItem("rikishi-session", JSON.stringify(user));
     setSession(user);
   };
 
   const logout = () => {
-    localStorage.removeItem("rikishi-session");
     setSession(null);
+    document.cookie = "rikishi-session=;Path=/;Expires=Thu, 01 Jan 1970 00:00:00 GMT";
   };
 
-  return { session, login, logout, hydrated };
+  return { session, login, logout };
+}
+
+interface UserOption {
+  name: string;
+  id: string;
 }
 
 export function UserAuth({
@@ -46,14 +54,22 @@ export function UserAuth({
   onLogout: () => void;
 }) {
   const [users, setUsers] = useState<UserOption[]>([]);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [pin, setPin] = useState("");
+  const [selectedName, setSelectedName] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [migrationState, setMigrationState] = useState<{
+    name: string;
+    pin: string;
+    userId: string;
+    admin: boolean;
+  } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     fetch("/api/auth")
       .then((r) => r.json())
-      .then((data) => setUsers(data.users));
+      .then((data) => setUsers(data.users || []));
   }, []);
 
   const handleLogin = async () => {
@@ -61,15 +77,64 @@ export function UserAuth({
     const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: selectedUser, pin }),
+      body: JSON.stringify({ name: selectedName, password }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      onLogin(data);
-      setPin("");
-    } else {
-      setError("Invalid PIN");
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Login failed");
+      return;
     }
+
+    if (data.needsPassword) {
+      setMigrationState({
+        name: selectedName,
+        pin: password,
+        userId: data.userId,
+        admin: data.admin,
+      });
+      setPassword("");
+      return;
+    }
+
+    onLogin({ userId: data.userId, name: data.name, admin: data.admin });
+    setSelectedName("");
+    setPassword("");
+  };
+
+  const handleSetPassword = async () => {
+    setError("");
+    if (!migrationState) return;
+
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    const res = await fetch("/api/auth/set-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: migrationState.name,
+        pin: migrationState.pin,
+        password: newPassword,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Failed to set password");
+      return;
+    }
+
+    onLogin({ userId: data.userId, name: data.name, admin: data.admin });
+    setMigrationState(null);
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   if (session) {
@@ -77,23 +142,60 @@ export function UserAuth({
       <div className="flex items-center gap-3">
         <span className="text-retro-yellow font-pixel text-xs">
           {session.name}
-          {session.admin && " *"}
+          {session.admin && " [ADMIN]"}
         </span>
-        <button
-          onClick={onLogout}
-          className="retro-btn text-xs px-2 py-1"
-        >
+        <button onClick={onLogout} className="retro-btn text-xs px-2 py-1">
           LOGOUT
         </button>
       </div>
     );
   }
 
+  // Password setup form (migration from PIN)
+  if (migrationState) {
+    return (
+      <div className="flex flex-col gap-2 items-end">
+        <p className="text-retro-cyan font-pixel text-xs">
+          SET YOUR PASSWORD ({migrationState.name})
+        </p>
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+          <input
+            type="password"
+            placeholder="NEW PASSWORD"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="retro-input w-24 sm:w-28 text-xs text-center"
+          />
+          <input
+            type="password"
+            placeholder="CONFIRM"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSetPassword()}
+            className="retro-input w-24 sm:w-28 text-xs text-center"
+          />
+          <button
+            onClick={handleSetPassword}
+            disabled={newPassword.length < 8 || !confirmPassword}
+            className="retro-btn text-xs px-2 py-1"
+          >
+            SAVE
+          </button>
+        </div>
+        <p className="text-gray-500 font-pixel text-xs">MIN 8 CHARACTERS</p>
+        {error && (
+          <span className="text-retro-red text-xs font-pixel">{error}</span>
+        )}
+      </div>
+    );
+  }
+
+  // Login form
   return (
     <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
       <select
-        value={selectedUser}
-        onChange={(e) => setSelectedUser(e.target.value)}
+        value={selectedName}
+        onChange={(e) => setSelectedName(e.target.value)}
         className="retro-select text-xs max-w-[130px] sm:max-w-none"
       >
         <option value="">PLAYER</option>
@@ -105,19 +207,18 @@ export function UserAuth({
       </select>
       <input
         type="password"
-        maxLength={4}
-        placeholder="PIN"
-        value={pin}
-        onChange={(e) => setPin(e.target.value)}
+        placeholder="PASSWORD"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-        className="retro-input w-14 sm:w-16 text-xs text-center"
+        className="retro-input w-20 sm:w-24 text-xs text-center"
       />
       <button
         onClick={handleLogin}
-        disabled={!selectedUser || pin.length !== 4}
+        disabled={!selectedName || !password}
         className="retro-btn text-xs px-2 py-1"
       >
-        GO
+        LOGIN
       </button>
       {error && (
         <span className="text-retro-red text-xs font-pixel">{error}</span>

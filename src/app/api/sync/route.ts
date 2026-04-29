@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConfig, isAdmin } from "@/lib/config";
+import { getConfig } from "@/lib/config";
 import { syncBanzuke, syncAllDays, syncDay, calculateScores } from "@/lib/sync";
+import { getSessionFromRequest } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const { userName, action, day } = await request.json();
-
-  if (!userName || !isAdmin(userName)) {
+  const session = getSessionFromRequest(request);
+  if (!session || !session.admin) {
     return NextResponse.json(
       { error: "Admin access required" },
       { status: 403 }
     );
   }
 
+  const { action, day } = await request.json();
   const config = getConfig();
   const bashoId = config.basho;
 

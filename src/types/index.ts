@@ -1,7 +1,14 @@
 // Config types
 export interface UserConfig {
   name: string;
-  pin: string;
+  pin?: string;
+  admin: boolean;
+}
+
+// Session type
+export interface UserSession {
+  userId: string;
+  name: string;
   admin: boolean;
 }
 

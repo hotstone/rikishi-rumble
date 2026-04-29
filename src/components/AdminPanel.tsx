@@ -7,13 +7,12 @@ interface UserOption {
   name: string;
 }
 
-export function AdminPanel({ userName, pin }: { userName: string; pin: string }) {
+export function AdminPanel({ userName }: { userName: string }) {
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [pinMessage, setPinMessage] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
   const [autoSyncDay, setAutoSyncDay] = useState<number | null>(null);
   const autoSyncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,7 +38,7 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
     const res = await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userName, action: "day", day }),
+      body: JSON.stringify({ action: "day", day }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -49,7 +48,7 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
       setMessage(data.error || "SYNC FAILED");
       return false;
     }
-  }, [userName]);
+  }, []);
 
   const handleSync = async (action: string, day?: number) => {
     stopAutoSync();
@@ -74,7 +73,7 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
     const res = await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userName, action, day }),
+      body: JSON.stringify({ action, day }),
     });
 
     const data = await res.json();
@@ -140,30 +139,31 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
         )}
       </div>
 
-      {/* Cron control — Matt only */}
-      {userName === "Matt" && (
-        <div className="mt-4 border-t-2 border-retro-border pt-4">
-          <h3 className="font-pixel text-xs text-retro-cyan mb-3">CRON JOBS</h3>
-          <button
-            onClick={async () => {
-              const res = await fetch("/api/cron", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userName }),
-              });
-              const data = await res.json();
-              setMessage(data.message || data.error || "DONE");
-            }}
-            className="retro-btn w-full text-xs py-2"
-          >
-            START CRON JOBS
-          </button>
-        </div>
-      )}
-
-      {/* PIN Management */}
+      {/* Cron control */}
       <div className="mt-4 border-t-2 border-retro-border pt-4">
-        <h3 className="font-pixel text-xs text-retro-cyan mb-3">CHANGE USER PIN</h3>
+        <h3 className="font-pixel text-xs text-retro-cyan mb-3">CRON JOBS</h3>
+        <button
+          onClick={async () => {
+            const res = await fetch("/api/cron", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({}),
+            });
+            const data = await res.json();
+            setMessage(data.message || data.error || "DONE");
+          }}
+          className="retro-btn w-full text-xs py-2"
+        >
+          START CRON JOBS
+        </button>
+      </div>
+
+      {/* Password Reset */}
+      <div className="mt-4 border-t-2 border-retro-border pt-4">
+        <h3 className="font-pixel text-xs text-retro-cyan mb-3">RESET USER PASSWORD</h3>
+        <p className="font-pixel text-xs text-gray-400 mb-2">
+          RESETS PASSWORD SO USER MUST SET A NEW ONE VIA PIN
+        </p>
         <div className="flex items-center gap-2 flex-wrap">
           <select
             value={selectedUser}
@@ -177,45 +177,31 @@ export function AdminPanel({ userName, pin }: { userName: string; pin: string })
               </option>
             ))}
           </select>
-          <input
-            type="text"
-            maxLength={4}
-            placeholder="NEW PIN"
-            value={newPin}
-            onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
-            className="retro-input w-20 text-xs text-center"
-          />
           <button
             onClick={async () => {
-              setPinMessage("");
+              setResetMessage("");
               const res = await fetch("/api/admin/pin", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  adminName: userName,
-                  adminPin: pin,
-                  targetUser: selectedUser,
-                  newPin,
-                }),
+                body: JSON.stringify({ targetUser: selectedUser }),
               });
               const data = await res.json();
-              setPinMessage(data.message || data.error);
+              setResetMessage(data.message || data.error);
               if (res.ok) {
-                setNewPin("");
                 setSelectedUser("");
               }
             }}
-            disabled={!selectedUser || newPin.length !== 4}
+            disabled={!selectedUser}
             className="retro-btn text-xs px-3 py-1"
           >
-            UPDATE
+            RESET
           </button>
         </div>
-        {pinMessage && (
+        {resetMessage && (
           <p className={`font-pixel text-xs mt-2 ${
-            pinMessage.startsWith("PIN") ? "text-retro-green" : "text-retro-red"
+            resetMessage.startsWith("Password") ? "text-retro-green" : "text-retro-red"
           }`}>
-            {pinMessage}
+            {resetMessage}
           </p>
         )}
       </div>

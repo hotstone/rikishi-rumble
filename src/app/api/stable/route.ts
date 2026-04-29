@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getConfig, validatePin } from "@/lib/config";
+import { getConfig } from "@/lib/config";
+import { getSessionFromRequest } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
@@ -57,22 +58,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { userName, pin, picks } = await request.json();
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
 
-  if (!userName || !pin || !picks) {
+  const { picks } = await request.json();
+
+  if (!picks) {
     return NextResponse.json(
-      { error: "userName, pin, and picks required" },
+      { error: "picks required" },
       { status: 400 }
     );
   }
 
-  if (!validatePin(userName, pin)) {
-    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
-  }
-
   const config = getConfig();
   const bashoId = config.basho;
-  const userId = userName.toLowerCase().replace(/\s+/g, "-");
+  const userId = session.userId;
   const db = getDb();
 
   // Validate picks: must have exactly 5 picks, one per tier
