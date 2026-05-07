@@ -12,8 +12,8 @@ import { bashoLabel } from "@/lib/basho";
 import { BashoCountdown } from "@/components/BashoCountdown";
 import { HallOfChampions } from "@/components/HallOfChampions";
 
-type Tab = "home" | "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
-const VALID_TABS = new Set<Tab>(["home", "leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
+type Tab = "home" | "leaderboard" | "basho" | "rules" | "champions" | "stable" | "substitution" | "admin";
+const VALID_TABS = new Set<Tab>(["home", "leaderboard", "basho", "rules", "champions", "stable", "substitution", "admin"]);
 
 function tabFromHash(loggedIn: boolean): Tab {
   const hash = window.location.hash.slice(1);
@@ -84,6 +84,7 @@ export default function Home() {
     { id: "basho", label: "BASHO" },
     { id: "stable", label: "STABLE" },
     { id: "substitution", label: "SUBS" },
+    { id: "champions", label: "CHAMPS" },
     { id: "rules", label: "RULES" },
     { id: "admin", label: "ADMIN", requiresAdmin: true },
   ];
@@ -91,7 +92,7 @@ export default function Home() {
   // Tabs for landing page (not logged in)
   const publicTabs: { id: Tab; label: string }[] = [
     { id: "home", label: "HOME" },
-    { id: "rules", label: "RULES" },
+    { id: "champions", label: "CHAMPS" },
   ];
 
   const visibleTabs = session ? authedTabs : publicTabs;
@@ -146,39 +147,38 @@ export default function Home() {
       <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Public pages */}
         {activeTab === "home" && !session && (
-          <div className="retro-panel">
-            <div className="retro-panel-header">
-              <h2 className="font-pixel text-sm">WELCOME</h2>
+          <div className="space-y-4">
+            <div className="retro-panel">
+              <div className="retro-panel-header">
+                <h2 className="font-pixel text-sm">WELCOME</h2>
+              </div>
+              <div className="space-y-4 font-pixel text-xs">
+                <p className="text-retro-cyan">
+                  WELCOME TO RIKISHI RUMBLE - THE SUMO TIPPING GAME!
+                </p>
+                <p className="text-gray-300">
+                  BUILD YOUR STABLE OF 5 WRESTLERS ACROSS 5 RANK TIERS.
+                  EARN POINTS WHEN YOUR WRESTLERS WIN THEIR BOUTS DURING
+                  THE 15-DAY BASHO TOURNAMENT.
+                </p>
+                <p className="text-gray-300">
+                  EARN A KIMBOSHI WHEN YOUR MAEGASHIRA DEFEATS A
+                  YOKOZUNA - THE TIEBREAKER IF SCORES ARE LEVEL AT
+                  THE END OF THE BASHO. MAKE STRATEGIC SUBSTITUTIONS
+                  EACH EVENING TO STAY AHEAD OF THE COMPETITION.
+                </p>
+                <p className="text-retro-yellow">
+                  LOG IN TO GET STARTED!
+                </p>
+              </div>
             </div>
-            <div className="space-y-4 font-pixel text-xs">
-              <p className="text-retro-cyan">
-                WELCOME TO RIKISHI RUMBLE - THE SUMO TIPPING GAME!
-              </p>
-              <p className="text-gray-300">
-                BUILD YOUR STABLE OF 5 WRESTLERS ACROSS 5 RANK TIERS.
-                EARN POINTS WHEN YOUR WRESTLERS WIN THEIR BOUTS DURING
-                THE 15-DAY BASHO TOURNAMENT.
-              </p>
-              <p className="text-gray-300">
-                EARN A KIMBOSHI WHEN YOUR MAEGASHIRA DEFEATS A
-                YOKOZUNA - THE TIEBREAKER IF SCORES ARE LEVEL AT
-                THE END OF THE BASHO. MAKE STRATEGIC SUBSTITUTIONS
-                EACH EVENING TO STAY AHEAD OF THE COMPETITION.
-              </p>
-              <p className="text-retro-yellow">
-                LOG IN TO GET STARTED!
-              </p>
-            </div>
+            <RulesPanel />
           </div>
         )}
 
-        {activeTab === "home" && !session && (
-          <div className="mt-4">
-            <HallOfChampions />
-          </div>
-        )}
+        {activeTab === "champions" && <HallOfChampions />}
 
-        {activeTab === "rules" && <RulesPanel />}
+        {activeTab === "rules" && session && <RulesPanel />}
 
         {/* Authenticated pages */}
         {activeTab === "leaderboard" && session && <Leaderboard />}

@@ -28,7 +28,7 @@ export function HallOfChampions() {
   return (
     <div className="retro-panel">
       <div className="retro-panel-header">
-        <h2 className="font-pixel text-sm text-retro-yellow">HALL OF CHAMPIONS</h2>
+        <h2 className="font-pixel text-sm text-white">HALL OF CHAMPIONS</h2>
       </div>
       <div className="space-y-0">
         {champions.map((c, idx) => {
