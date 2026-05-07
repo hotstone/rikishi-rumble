@@ -1,0 +1,23 @@
+name: Sync config.json to volume
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-config:
+    name: Sync config.json
+    runs-on: ubuntu-latest
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Upload config.json to /data
+        run: echo "put config.json /data/config.json" | flyctl sftp shell
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Restart machines so the new config takes effect
+        run: |
+          flyctl machine list --json | jq -r '.[].id' | while read -r id; do
+            flyctl machine restart "$id"
+          done
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
