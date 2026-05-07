@@ -24,7 +24,7 @@ export function getSessionFromRequest(request: NextRequest): UserSession | null 
   const cookie = request.cookies.get(SESSION_COOKIE);
   if (!cookie?.value) return null;
   try {
-    const parsed = JSON.parse(decodeURIComponent(cookie.value));
+    const parsed = JSON.parse(cookie.value);
     if (parsed.userId && parsed.name && typeof parsed.admin === "boolean") {
       return parsed as UserSession;
     }
@@ -35,5 +35,5 @@ export function getSessionFromRequest(request: NextRequest): UserSession | null 
 }
 
 export function makeSessionCookieValue(session: UserSession): string {
-  return encodeURIComponent(JSON.stringify(session));
+  return JSON.stringify(session);
 }

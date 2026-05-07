@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
   }
 
   try {
-    const parsed = JSON.parse(decodeURIComponent(sessionCookie.value));
+    const parsed = JSON.parse(sessionCookie.value);
     if (!parsed.userId || !parsed.name) {
       return NextResponse.json(
         { error: "Invalid session" },
