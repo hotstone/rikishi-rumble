@@ -9,6 +9,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { BashoPage } from "@/components/BashoPage";
 import { RulesPanel } from "@/components/RulesPanel";
 import { bashoLabel } from "@/lib/basho";
+import { BashoCountdown } from "@/components/BashoCountdown";
 
 type Tab = "home" | "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
 const VALID_TABS = new Set<Tab>(["home", "leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
@@ -96,6 +97,7 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen ${scanlines ? "scanlines" : ""}`}>
+      <BashoCountdown />
       <header className="border-b-3 border-retro-border bg-retro-panel">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3">
           <div className="flex items-center justify-between mb-2">
