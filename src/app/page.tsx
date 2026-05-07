@@ -10,6 +10,7 @@ import { BashoPage } from "@/components/BashoPage";
 import { RulesPanel } from "@/components/RulesPanel";
 import { bashoLabel } from "@/lib/basho";
 import { BashoCountdown } from "@/components/BashoCountdown";
+import { HallOfChampions } from "@/components/HallOfChampions";
 
 type Tab = "home" | "leaderboard" | "basho" | "rules" | "stable" | "substitution" | "admin";
 const VALID_TABS = new Set<Tab>(["home", "leaderboard", "basho", "rules", "stable", "substitution", "admin"]);
@@ -168,6 +169,12 @@ export default function Home() {
                 LOG IN TO GET STARTED!
               </p>
             </div>
+          </div>
+        )}
+
+        {activeTab === "home" && !session && (
+          <div className="mt-4">
+            <HallOfChampions />
           </div>
         )}
 

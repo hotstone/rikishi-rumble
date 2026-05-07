@@ -4,7 +4,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public endpoints
-  if (pathname.startsWith("/api/auth") || pathname === "/api/basho") {
+  if (pathname.startsWith("/api/auth") || pathname === "/api/basho" || pathname === "/api/champions") {
     return NextResponse.next();
   }
 
