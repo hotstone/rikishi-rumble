@@ -92,7 +92,6 @@ export default function Home() {
   // Tabs for landing page (not logged in)
   const publicTabs: { id: Tab; label: string }[] = [
     { id: "home", label: "HOME" },
-    { id: "champions", label: "CHAMPS" },
   ];
 
   const visibleTabs = session ? authedTabs : publicTabs;
@@ -176,7 +175,7 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === "champions" && <HallOfChampions />}
+        {activeTab === "champions" && session && <HallOfChampions />}
 
         {activeTab === "rules" && session && <RulesPanel />}
 
