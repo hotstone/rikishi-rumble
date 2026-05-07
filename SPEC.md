@@ -16,7 +16,7 @@ The app is designed for a small, trusted group of 5-15 users defined in a config
 - Automatically fetch match results from sumo-api.com and calculate scores
 - Display a live leaderboard with daily rankings, total points, and wrestler names
 - Support mid-basho wrestler substitutions (up to 2 per day within a defined window)
-- Award bonus points for kimboshi (Maegashira beating a Yokozuna)
+- Track kimboshi (Maegashira beating a Yokozuna) for use as a tiebreaker
 - Deliver a fun, retro 8-bit Kunio-kun visual experience
 - Secure all pages and API routes behind password-based authentication
 
@@ -82,7 +82,7 @@ Each user selects exactly one wrestler from each of the following five rank tier
 ### Scoring
 
 - **Win:** Each bout won by a wrestler in your stable earns you **1 point**.
-- **Kimboshi:** If a Maegashira-ranked wrestler in your stable defeats a Yokozuna, you earn **1 extra bonus point** (2 total for that bout: 1 win + 1 kimboshi). This uses the strict traditional definition -- only Maegashira beating a Yokozuna counts. Wins by **Fusen** (forfeit, where the Yokozuna did not compete) do **not** count as kimboshi.
+- **Kimboshi:** If a Maegashira-ranked wrestler in your stable defeats a Yokozuna, a kimboshi is recorded. Kimboshi do **not** award points -- they are tracked solely as a tiebreaker. This uses the strict traditional definition -- only Maegashira beating a Yokozuna counts. Wins by **Fusen** (forfeit, where the Yokozuna did not compete) do **not** count as kimboshi.
 - Points are cumulative across the 15-day basho. The player with the most points at the end wins. **Tiebreaker:** if two players are tied on points, the player with more kimboshi ranks higher.
 
 ### Substitutions
@@ -239,7 +239,7 @@ Components are ordered by dependency chain. Each step builds on the previous one
 | 2 | Rank tier overlap | M7-12 / M13-17+ (clean split) | Fixed the M12 overlap from original requirements |
 | 3 | Substitution points | Keep accumulated points | Simplest and most intuitive; no penalty for swapping |
 | 4 | Timezone | AEST (Australia/Sydney) | User group is Australian; matches finish ~8pm AEST |
-| 5 | Kimboshi definition | Strict: Maegashira beats Yokozuna, excluding Fusen wins | Traditional definition; Fusen excluded because the Yokozuna didn't compete |
+| 5 | Kimboshi definition | Strict: Maegashira beats Yokozuna, excluding Fusen wins. Worth no points, used only as tiebreaker | Traditional definition; Fusen excluded because the Yokozuna didn't compete. Kimboshi rewards risk-taking via the tiebreaker rather than direct scoring |
 | 6 | Competition scope | Single basho at a time | Clean reset each tournament; no seasonal tracking |
 | 7 | Data sync strategy | Hybrid: auto-poll + manual override | Daily cron at 7:30 PM + 8:00 PM AEST, plus admin button for ad-hoc syncs |
 | 8 | Kyujo handling | Treat as normal losses | No special handling; user can use substitutions strategically |

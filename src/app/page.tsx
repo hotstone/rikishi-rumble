@@ -157,9 +157,10 @@ export default function Home() {
                 THE 15-DAY BASHO TOURNAMENT.
               </p>
               <p className="text-gray-300">
-                SCORE BONUS KIMBOSHI POINTS WHEN YOUR MAEGASHIRA
-                DEFEATS A YOKOZUNA. MAKE STRATEGIC SUBSTITUTIONS EACH
-                EVENING TO STAY AHEAD OF THE COMPETITION.
+                EARN A KIMBOSHI WHEN YOUR MAEGASHIRA DEFEATS A
+                YOKOZUNA - THE TIEBREAKER IF SCORES ARE LEVEL AT
+                THE END OF THE BASHO. MAKE STRATEGIC SUBSTITUTIONS
+                EACH EVENING TO STAY AHEAD OF THE COMPETITION.
               </p>
               <p className="text-retro-yellow">
                 LOG IN TO GET STARTED!

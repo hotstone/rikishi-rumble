@@ -26,7 +26,7 @@ Port 3000 is occupied on this machine — always use 3001.
 ## Key rules & conventions
 - **Rank format:** sumo-api.com returns full text ("Yokozuna 1 East"); we store short format ("Y1e") via `shortRank()`
 - **Tiers:** 5 tiers — Y+O (1), K+S (2), M1-6 (3), M7-12 (4), M13+ (5)
-- **Kimboshi:** +1 bonus when Maegashira beats Yokozuna (2 points total for that bout)
+- **Kimboshi:** awarded when Maegashira beats Yokozuna; not worth points, used as tiebreaker
 - **Substitutions:** 2/day max, same tier only, window 8PM–6PM AEST
 - **Scoring:** recalculated from scratch on every sync — no incremental updates
 - **Torikumi response:** wraps matches in `data.torikumi` array

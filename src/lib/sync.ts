@@ -183,9 +183,6 @@ export function calculateScores(bashoId: string): void {
           kimboshi += wins.kb || 0;
         }
 
-        // Kimboshi adds 1 extra point per occurrence
-        points += kimboshi;
-
         insertScore.run(bashoId, userId, day, points, kimboshi);
       }
     }

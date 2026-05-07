@@ -24,7 +24,6 @@ export function RulesPanel() {
           <h3 className="text-retro-yellow mb-2">SCORING</h3>
           <ul className="space-y-1 text-gray-300 list-none">
             <li>- 1 POINT PER WIN BY YOUR WRESTLER</li>
-            <li>- KIMBOSHI: +1 BONUS WHEN A MAEGASHIRA BEATS A YOKOZUNA (2 PTS TOTAL)</li>
           </ul>
         </section>
 
@@ -40,6 +39,7 @@ export function RulesPanel() {
         <section>
           <h3 className="text-retro-yellow mb-2">TIEBREAKER</h3>
           <ul className="space-y-1 text-gray-300 list-none">
+            <li>- KIMBOSHI: WHEN YOUR MAEGASHIRA BEATS A YOKOZUNA</li>
             <li>- MOST KIMBOSHI WINS THE TIE</li>
           </ul>
         </section>
