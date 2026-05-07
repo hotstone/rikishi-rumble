@@ -208,6 +208,7 @@ The visual design is inspired by **Kunio-kun / Nekketsu** series games (River Ci
 - **Rules tab:** Visible to all users including before login. Bulleted list covering stable tiers, scoring, kimboshi, substitution rules, and tiebreaker.
 - **SUBS tab clash indicator:** An `!` badge appears on the SUBS tab when two wrestlers in your stable are scheduled to face each other the following day.
 - **Basho countdown banner:** A banner across the very top of the page counting down to the next basho start date (days, hours, minutes, seconds). Automatically hidden when a basho is active. The next basho start is calculated as the second Sunday of the next odd month (Jan, Mar, May, Jul, Sep, Nov).
+- **Hall of Champions:** Displayed on the home page (pre-login). Lists previous basho winners ranked by highest points, showing player name, basho name, and score. When fewer than 8 champions exist, remaining slots are filled with legendary sumo wrestler names (Hakuho, Taiho, Chiyonofuji, etc.) at 0 points.
 - **User selector:** Dropdown with user names + PIN input field. No separate login page -- integrated into the header/nav bar.
 
 ### Design Direction
