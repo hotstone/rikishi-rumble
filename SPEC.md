@@ -207,6 +207,7 @@ The visual design is inspired by **Kunio-kun / Nekketsu** series games (River Ci
 - **Substitution page:** Shows current stable with swap buttons. Countdown timer for the substitution window. Disabled outside the allowed hours.
 - **Rules tab:** Visible to all users including before login. Bulleted list covering stable tiers, scoring, kimboshi, substitution rules, and tiebreaker.
 - **SUBS tab clash indicator:** An `!` badge appears on the SUBS tab when two wrestlers in your stable are scheduled to face each other the following day.
+- **Basho countdown banner:** A banner across the very top of the page counting down to the next basho start date (days, hours, minutes, seconds). Automatically hidden when a basho is active. The next basho start is calculated as the second Sunday of the next odd month (Jan, Mar, May, Jul, Sep, Nov).
 - **User selector:** Dropdown with user names + PIN input field. No separate login page -- integrated into the header/nav bar.
 
 ### Design Direction
