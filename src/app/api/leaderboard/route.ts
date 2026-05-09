@@ -15,13 +15,7 @@ export async function GET(request: NextRequest) {
     )
     .get(bashoId) as { day: number | null };
 
-  const latestScoreDay = db
-    .prepare(
-      "SELECT MAX(day) as day FROM daily_scores WHERE basho_id = ?"
-    )
-    .get(bashoId) as { day: number | null };
-
-  const currentDay = latestBoutDay?.day || latestScoreDay?.day || 0;
+  const currentDay = latestBoutDay?.day || 0;
 
   // activeDay: a day with partial results (in progress), fallback to currentDay
   const activeDayRow = db
