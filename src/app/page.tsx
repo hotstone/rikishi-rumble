@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { UserAuth, useAuth } from "@/components/UserAuth";
 import { Leaderboard } from "@/components/Leaderboard";
 import { StableSelector } from "@/components/StableSelector";
@@ -103,8 +104,17 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="font-pixel text-sm sm:text-lg text-retro-yellow title-glow">
-                RIKISHI RUMBLE
+              <h1>
+                <Image
+                  src="/title.png"
+                  alt="Rikishi Rumble"
+                  width={198}
+                  height={72}
+                  priority
+                  unoptimized
+                  className="h-[36px] w-[99px] sm:h-[72px] sm:w-[198px]"
+                  style={{ imageRendering: "pixelated" }}
+                />
               </h1>
               {basho && (
                 <p className="font-pixel text-xs text-retro-cyan">
