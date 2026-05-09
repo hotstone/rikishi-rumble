@@ -15,7 +15,6 @@ export interface UserSession {
 export interface AppConfig {
   timezone: string;
   basho: string;
-  stableLockDate?: string;
   users: UserConfig[];
 }
 

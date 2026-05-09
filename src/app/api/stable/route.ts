@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 import { getSessionFromRequest } from "@/lib/auth";
+import { stableLockDate } from "@/lib/basho";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
@@ -76,6 +77,17 @@ export async function POST(request: NextRequest) {
   const bashoId = config.basho;
   const userId = session.userId;
   const db = getDb();
+
+  const bashoRow = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
+
+  if (new Date() >= stableLockDate(bashoId, bashoRow?.start_date || null)) {
+    return NextResponse.json(
+      { error: "Selections are locked — use substitutions to change your stable" },
+      { status: 403 }
+    );
+  }
 
   // Validate picks: must have exactly 5 picks, one per tier
   if (!Array.isArray(picks) || picks.length !== 5) {

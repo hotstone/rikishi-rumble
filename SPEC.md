@@ -79,6 +79,8 @@ Each user selects exactly one wrestler from each of the following five rank tier
 | 4    | Maegashira 7-12        | 1     |
 | 5    | Maegashira 13-17+      | 1     |
 
+Stable selections lock at **4:00 PM Tokyo time on day 1 of the basho** (07:00 UTC). Once locked, changes require a substitution. Enforced both client-side (UI disabled) and server-side (`POST /api/stable` returns 403 after the deadline).
+
 ### Scoring
 
 - **Win:** Each bout won by a wrestler in your stable earns you **1 point**.

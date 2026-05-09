@@ -74,10 +74,6 @@ export function StableSelector({
 
       if (bashoData.stableLockDate) {
         setLockDate(new Date(bashoData.stableLockDate));
-      } else if (bashoData.startDate) {
-        const start = new Date(bashoData.startDate);
-        start.setUTCHours(3, 0, 0, 0);
-        setLockDate(start);
       }
 
       const existingPicks: Record<number, number> = {};

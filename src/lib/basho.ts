@@ -30,6 +30,17 @@ function bashoIdToStart(bashoId: string): Date {
   return secondSunday(year, month);
 }
 
+/** Stable selections lock at 4pm Tokyo time (07:00 UTC) on day 1 of the basho. */
+export function stableLockDate(bashoId: string, dbStartDate: string | null): Date {
+  const start = dbStartDate ? new Date(dbStartDate) : bashoIdToStart(bashoId);
+  return new Date(Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate(),
+    7, 0, 0, 0
+  ));
+}
+
 export function bashoIdFromDate(year: number, month: number): string {
   return `${year}${String(month).padStart(2, "0")}`;
 }

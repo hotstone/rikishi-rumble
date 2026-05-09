@@ -1,7 +1,6 @@
 {
   "timezone": "Australia/Sydney",
   "basho": "202605",
-  "stableLockDate": "2026-03-08T06:00:00Z",
   "users": [
     {
       "name": "Matt",
