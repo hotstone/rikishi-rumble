@@ -130,14 +130,8 @@ export function StableSelector({
 
       {/* Countdown / Lock status */}
       {lockDate && (
-        <div
-          className={`border-2 px-3 py-2 mb-3 ${
-            locked
-              ? "bg-retro-red/10 border-retro-red/30"
-              : "bg-retro-cyan/10 border-retro-cyan/30"
-          }`}
-        >
-          <p className={`font-pixel text-xs ${locked ? "text-retro-red" : "text-retro-cyan"}`}>
+        <div className="border-2 px-3 py-2 mb-3 bg-retro-red/10 border-retro-red/30">
+          <p className="font-pixel text-xs text-retro-red">
             {locked
               ? "SELECTIONS LOCKED - USE SUBSTITUTIONS TO CHANGE"
               : `LOCKS IN: ${timeLeft}`}
