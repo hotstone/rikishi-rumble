@@ -45,11 +45,6 @@ export function bashoIdFromDate(year: number, month: number): string {
   return `${year}${String(month).padStart(2, "0")}`;
 }
 
-export function isBashoActive(startDate: Date, now: Date = new Date()): boolean {
-  const end = new Date(startDate.getTime() + BASHO_DURATION_DAYS * 24 * 60 * 60 * 1000);
-  return now >= startDate && now < end;
-}
-
 export function nextBashoStart(now: Date = new Date()): { bashoId: string; startDate: Date } {
   let year = now.getUTCFullYear();
   for (let i = 0; i < BASHO_MONTHS.length * 2; i++) {
@@ -70,23 +65,27 @@ export function currentOrNextBashoInfo(
 ): { active: boolean; countdownTarget: Date | null; nextBashoId: string; nextBashoLabel: string } {
   const now = new Date();
   const startDate = dbStartDate ? new Date(dbStartDate) : bashoIdToStart(configBashoId);
-
-  if (isBashoActive(startDate, now)) {
-    return { active: true, countdownTarget: null, nextBashoId: configBashoId, nextBashoLabel: bashoLabel(configBashoId) };
-  }
-
+  const lockDate = stableLockDate(configBashoId, dbStartDate);
   const end = new Date(startDate.getTime() + BASHO_DURATION_DAYS * 24 * 60 * 60 * 1000);
-  if (now >= end || now < startDate) {
-    const next = now < startDate
-      ? { bashoId: configBashoId, startDate }
-      : nextBashoStart(now);
+
+  if (now < lockDate) {
     return {
       active: false,
-      countdownTarget: next.startDate,
-      nextBashoId: next.bashoId,
-      nextBashoLabel: bashoLabel(next.bashoId),
+      countdownTarget: lockDate,
+      nextBashoId: configBashoId,
+      nextBashoLabel: bashoLabel(configBashoId),
     };
   }
 
-  return { active: true, countdownTarget: null, nextBashoId: configBashoId, nextBashoLabel: bashoLabel(configBashoId) };
+  if (now < end) {
+    return { active: true, countdownTarget: null, nextBashoId: configBashoId, nextBashoLabel: bashoLabel(configBashoId) };
+  }
+
+  const next = nextBashoStart(now);
+  return {
+    active: false,
+    countdownTarget: stableLockDate(next.bashoId, null),
+    nextBashoId: next.bashoId,
+    nextBashoLabel: bashoLabel(next.bashoId),
+  };
 }
