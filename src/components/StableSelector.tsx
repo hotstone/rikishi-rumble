@@ -10,6 +10,24 @@ interface Wrestler {
   tier: number;
 }
 
+interface Bout {
+  east_id: number;
+  east_name: string;
+  west_id: number;
+  west_name: string;
+}
+
+interface ClashInfo {
+  eastName: string;
+  westName: string;
+}
+
+function detectClashes(stableIds: Set<number>, bouts: Bout[]): ClashInfo[] {
+  return bouts
+    .filter((b) => stableIds.has(b.east_id) && stableIds.has(b.west_id))
+    .map((b) => ({ eastName: b.east_name, westName: b.west_name }));
+}
+
 function useCountdown(targetDate: Date | null) {
   const [timeLeft, setTimeLeft] = useState("");
   const [locked, setLocked] = useState(false);
@@ -61,6 +79,7 @@ export function StableSelector({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [lockDate, setLockDate] = useState<Date | null>(null);
+  const [dayOneBouts, setDayOneBouts] = useState<Bout[]>([]);
 
   const { timeLeft, locked } = useCountdown(lockDate);
 
@@ -69,7 +88,8 @@ export function StableSelector({
       fetch("/api/wrestlers").then((r) => r.json()),
       fetch(`/api/stable?userId=${userId}`).then((r) => r.json()),
       fetch("/api/basho").then((r) => r.json()),
-    ]).then(([wrestlerData, stableData, bashoData]) => {
+      fetch("/api/basho/bouts").then((r) => r.json()),
+    ]).then(([wrestlerData, stableData, bashoData, boutsData]) => {
       setWrestlers(wrestlerData.wrestlers);
 
       if (bashoData.stableLockDate) {
@@ -81,8 +101,12 @@ export function StableSelector({
         existingPicks[entry.tier] = entry.rikishi_id;
       }
       setPicks(existingPicks);
+
+      setDayOneBouts(boutsData.boutsByDay?.[1] ?? []);
     });
   }, [userId]);
+
+  const clashes = detectClashes(new Set(Object.values(picks)), dayOneBouts);
 
   const handlePick = (tier: number, rikishiId: number) => {
     if (locked) return;
@@ -140,6 +164,19 @@ export function StableSelector({
               ? "SELECTIONS LOCKED - USE SUBSTITUTIONS TO CHANGE"
               : `LOCKS IN: ${timeLeft}`}
           </p>
+        </div>
+      )}
+
+      {!locked && clashes.length > 0 && (
+        <div className="bg-retro-red/10 border-2 border-retro-red px-3 py-2 mb-3">
+          <p className="font-pixel text-xs text-retro-red mb-1">
+            ⚠ STABLEMATE CLASH DAY 1
+          </p>
+          {clashes.map((c, i) => (
+            <p key={i} className="font-pixel text-xs text-retro-yellow">
+              {c.eastName} vs {c.westName}
+            </p>
+          ))}
         </div>
       )}
 
