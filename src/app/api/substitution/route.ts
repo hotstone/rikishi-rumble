@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
     )
     .all(bashoId, userId);
 
-  const windowStatus = isSubstitutionWindowOpen();
+  const bashoRow = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
+  const windowStatus = isSubstitutionWindowOpen(
+    bashoRow?.start_date ? new Date(bashoRow.start_date) : null
+  );
 
   return NextResponse.json({
     substitutions: subs,
@@ -49,17 +54,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!isSubstitutionWindowOpen()) {
+  const config = getConfig();
+  const bashoId = config.basho;
+  const userId = session.userId;
+  const db = getDb();
+
+  const bashoRow = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
+
+  if (!isSubstitutionWindowOpen(bashoRow?.start_date ? new Date(bashoRow.start_date) : null)) {
     return NextResponse.json(
       { error: "Substitution window is closed" },
       { status: 403 }
     );
   }
-
-  const config = getConfig();
-  const bashoId = config.basho;
-  const userId = session.userId;
-  const db = getDb();
 
   // Check daily substitution limit (2 per day)
   const todaySubs = db

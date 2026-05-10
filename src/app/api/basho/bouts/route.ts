@@ -113,7 +113,12 @@ export async function GET(request: NextRequest) {
   }
 
   // During substitution window, hide other users' owners for undecided days
-  const windowOpen = isSubstitutionWindowOpen();
+  const currentBashoRow = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(config.basho) as { start_date: string | null } | undefined;
+  const windowOpen = isSubstitutionWindowOpen(
+    currentBashoRow?.start_date ? new Date(currentBashoRow.start_date) : null
+  );
   if (windowOpen) {
     const decidedByDay = new Map<number, boolean>();
     for (const bout of bouts) {

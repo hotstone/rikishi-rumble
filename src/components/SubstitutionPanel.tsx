@@ -2,69 +2,83 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-function useSubWindowCountdown() {
+type WindowStatus = "before-basho" | "open" | "blackout" | "after-basho";
+
+function formatDiff(diffMs: number): string {
+  if (diffMs <= 0) return "00H 00M 00S";
+  const h = Math.floor(diffMs / (1000 * 60 * 60));
+  const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((diffMs % (1000 * 60)) / 1000);
+  return `${String(h).padStart(2, "0")}H ${String(m).padStart(2, "0")}M ${String(s).padStart(2, "0")}S`;
+}
+
+function useSubWindowCountdown(bashoStartDate: Date | null) {
   const [timeLeft, setTimeLeft] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [status, setStatus] = useState<WindowStatus>("before-basho");
 
   useEffect(() => {
+    if (!bashoStartDate) return;
+
+    const firstOpen = new Date(bashoStartDate.getTime() + 9 * 3600 * 1000);
+    const finalClose = new Date(bashoStartDate.getTime() + (14 * 24 + 7) * 3600 * 1000);
+
     function update() {
-      // Get current time in AEST
       const now = new Date();
-      const aestStr = now.toLocaleString("en-US", {
-        timeZone: "Australia/Sydney",
+
+      if (now < firstOpen) {
+        setStatus("before-basho");
+        setTimeLeft(formatDiff(firstOpen.getTime() - now.getTime()));
+        return;
+      }
+      if (now >= finalClose) {
+        setStatus("after-basho");
+        setTimeLeft("");
+        return;
+      }
+
+      // Within basho — daily 18:00 → 16:00 JST cycle
+      const jstStr = now.toLocaleString("en-US", {
+        timeZone: "Asia/Tokyo",
         hour12: false,
         year: "numeric", month: "2-digit", day: "2-digit",
         hour: "2-digit", minute: "2-digit", second: "2-digit",
       });
-      const [datePart, timePart] = aestStr.split(", ");
+      const [datePart, timePart] = jstStr.split(", ");
       const [month, day, year] = datePart.split("/").map(Number);
       const [hour] = timePart.split(":").map(Number);
 
-      const open = hour >= 20 || hour < 18;
-      setIsOpen(open);
+      const open = hour >= 18 || hour < 16;
+      setStatus(open ? "open" : "blackout");
 
       let targetHour: number;
       let targetDay = day;
-
       if (open) {
-        if (hour >= 20) {
-          targetDay = day + 1;
-        }
-        targetHour = 18;
+        if (hour >= 18) targetDay = day + 1;
+        targetHour = 16;
       } else {
-        targetHour = 20;
+        targetHour = 18;
       }
 
-      const targetDate = new Date(
-        new Date().toLocaleString("en-US", { timeZone: "Australia/Sydney" })
-      );
-      targetDate.setFullYear(year, month - 1, targetDay);
-      targetDate.setHours(targetHour, 0, 0, 0);
+      const targetJst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+      targetJst.setFullYear(year, month - 1, targetDay);
+      targetJst.setHours(targetHour, 0, 0, 0);
+      const jstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+      let diff = targetJst.getTime() - jstNow.getTime();
 
-      const aestNow = new Date(
-        now.toLocaleString("en-US", { timeZone: "Australia/Sydney" })
-      );
-      const diff = targetDate.getTime() - aestNow.getTime();
-
-      if (diff <= 0) {
-        setTimeLeft("00H 00M 00S");
-        return;
+      // Cap "closes in" countdown at finalClose for the last day
+      if (open) {
+        const remainingToFinalClose = finalClose.getTime() - now.getTime();
+        diff = Math.min(diff, remainingToFinalClose);
       }
-
-      const h = Math.floor(diff / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((diff % (1000 * 60)) / 1000);
-      setTimeLeft(
-        `${String(h).padStart(2, "0")}H ${String(m).padStart(2, "0")}M ${String(s).padStart(2, "0")}S`
-      );
+      setTimeLeft(formatDiff(diff));
     }
 
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [bashoStartDate]);
 
-  return { timeLeft, isOpen };
+  return { timeLeft, status, isOpen: status === "open" };
 }
 
 interface StableEntry {
@@ -129,13 +143,15 @@ export function SubstitutionPanel({
   } | null>(null);
   const [message, setMessage] = useState("");
   const [currentDay, setCurrentDay] = useState(1);
+  const [bashoStartDate, setBashoStartDate] = useState<Date | null>(null);
 
   const loadData = useCallback(async () => {
-    const [stableRes, subRes, lbRes, boutsRes] = await Promise.all([
+    const [stableRes, subRes, lbRes, boutsRes, bashoRes] = await Promise.all([
       fetch(`/api/stable?userId=${userId}`).then((r) => r.json()),
       fetch(`/api/substitution?userId=${userId}`).then((r) => r.json()),
       fetch("/api/leaderboard").then((r) => r.json()),
       fetch("/api/basho/bouts").then((r) => r.json()),
+      fetch("/api/basho").then((r) => r.json()),
     ]);
 
     const day = lbRes.currentDay || 1;
@@ -147,12 +163,13 @@ export function SubstitutionPanel({
     setSubstitutions(subRes.substitutions);
     setCurrentDay(day);
     setBoutsByDay(boutsRes.boutsByDay || {});
+    setBashoStartDate(bashoRes.startDate ? new Date(bashoRes.startDate) : null);
   }, [userId]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData(); }, [loadData]);
 
-  const { timeLeft, isOpen: windowOpen } = useSubWindowCountdown();
+  const { timeLeft, status, isOpen: windowOpen } = useSubWindowCountdown(bashoStartDate);
   const todaySwapCount = substitutions.filter((s) => s.day === currentDay).length;
   const swapsRemaining = todaySwapCount < 2;
 
@@ -211,9 +228,10 @@ export function SubstitutionPanel({
           : "bg-retro-red/10 border-retro-red/30"
       }`}>
         <p className={`font-pixel text-xs ${windowOpen ? "text-retro-green" : "text-retro-red"}`}>
-          {windowOpen
-            ? `CLOSES IN: ${timeLeft}`
-            : `OPENS IN: ${timeLeft}`}
+          {status === "open" && `CLOSES IN: ${timeLeft}`}
+          {status === "blackout" && `OPENS IN: ${timeLeft}`}
+          {status === "before-basho" && `OPENS IN: ${timeLeft}`}
+          {status === "after-basho" && "BASHO ENDED"}
         </p>
       </div>
 

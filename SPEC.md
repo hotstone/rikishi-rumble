@@ -90,7 +90,8 @@ Stable selections lock at **4:00 PM Tokyo time on day 1 of the basho** (07:00 UT
 ### Substitutions
 
 - Each day, a user may substitute up to **2 wrestlers** in their stable.
-- The substitution window opens at **8:00 PM AEST** and closes at **6:00 PM AEST** the following day. This ensures swaps happen after the day's results are in and before the next day's bouts begin.
+- The substitution window opens at **6:00 PM JST** (right after the day's Makuuchi bouts end) and closes at **4:00 PM JST** the following day (just before the next day's Makuuchi bouts begin). JST is used (not Sydney time) so the window stays anchored to the sumo schedule and doesn't drift twice a year with Australian DST.
+- The **first** window opens at 18:00 JST on **day 1** of the basho (subs apply to day 2). The **final** window closes at 16:00 JST on **day 15** (subs apply to day 15). Outside this range, the window is closed regardless of time of day.
 - A substituted wrestler must be replaced with another wrestler from the **same rank tier**.
 - Points earned by a swapped-out wrestler are **retained**. The new wrestler earns points from the next day onward.
 
