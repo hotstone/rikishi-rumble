@@ -40,7 +40,7 @@ export function startCronJobs() {
     { timezone: "Asia/Tokyo" }
   );
 
-  // Every 2 minutes between 5:00 PM and 7:00 PM JST — syncs only the current day
+  // Every 2 minutes between 4:00 PM and 6:00 PM JST — syncs only the current day
   const intervalHandler = async () => {
     console.log("[cron:interval] Running current-day sync...");
     try {
@@ -58,8 +58,8 @@ export function startCronJobs() {
     }
   };
   const tokyo = { timezone: "Asia/Tokyo" };
-  cron.schedule("*/2 17-18 * * *", intervalHandler, tokyo);
-  cron.schedule("0 19 * * *", intervalHandler, tokyo);
+  cron.schedule("*/2 16-17 * * *", intervalHandler, tokyo);
+  cron.schedule("0 18 * * *", intervalHandler, tokyo);
 
-  console.log("[cron] Scheduled sync jobs: 7:30 PM JST, 8:00 PM JST, and every 2 min 5-7 PM JST");
+  console.log("[cron] Scheduled sync jobs: 7:30 PM JST, 8:00 PM JST, and every 2 min 4-6 PM JST");
 }
