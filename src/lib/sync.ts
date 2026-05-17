@@ -26,6 +26,7 @@ export async function syncBanzuke(bashoId: string): Promise<{ count: number }> {
   });
 
   transaction();
+  console.log(`[sync] Banzuke synced for ${bashoId}: ${entries.length} rikishi`);
   return { count: entries.length };
 }
 
@@ -47,11 +48,13 @@ export async function syncDay(
     }
   } catch {
     logSync(bashoId, day, "error", "Failed to fetch torikumi");
+    console.log(`[sync] Day ${day} (${bashoId}): fetch failed`);
     return { bouts: 0, pending: true, inProgress: false };
   }
 
   if (!Array.isArray(matches) || matches.length === 0) {
     logSync(bashoId, day, "pending", "No match data available");
+    console.log(`[sync] Day ${day} (${bashoId}): no match data`);
     return { bouts: 0, pending: true, inProgress: false };
   }
 
@@ -133,6 +136,9 @@ export async function syncDay(
 
   const decidedCount = matches.filter((m) => m.winnerId).length;
   const inProgress = decidedCount > 0 && decidedCount < matches.length;
+  console.log(
+    `[sync] Day ${day} (${bashoId}): ${matches.length} bouts, ${decidedCount} decided${inProgress ? " (in progress)" : ""}`
+  );
 
   return { bouts: matches.length, pending: false, inProgress };
 }
