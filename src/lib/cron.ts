@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { getConfig } from "./config";
-import { syncAllDays } from "./sync";
+import { syncAllDays, syncCurrentDay } from "./sync";
 
 let scheduled = false;
 
@@ -8,54 +8,58 @@ export function startCronJobs() {
   if (scheduled) return;
   scheduled = true;
 
-  // 7:30 PM AEST = 8:30 UTC (during AEDT it's 8:30 AM UTC, during AEST it's 9:30 AM UTC)
-  // Using Australia/Sydney timezone directly
+  // 7:30 PM JST
   cron.schedule(
     "30 19 * * *",
     async () => {
-      console.log("[cron] Running 7:30 PM AEST sync...");
+      console.log("[cron:730pm] Running scheduled sync...");
       try {
         const config = getConfig();
         const result = await syncAllDays(config.basho);
-        console.log(`[cron] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
+        console.log(`[cron:730pm] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
       } catch (error) {
-        console.error("[cron] Sync failed:", error);
+        console.error("[cron:730pm] Sync failed:", error);
       }
     },
-    { timezone: "Australia/Sydney" }
+    { timezone: "Asia/Tokyo" }
   );
 
-  // 8:00 PM AEST
+  // 8:00 PM JST
   cron.schedule(
     "0 20 * * *",
     async () => {
-      console.log("[cron] Running 8:00 PM AEST sync...");
+      console.log("[cron:800pm] Running scheduled sync...");
       try {
         const config = getConfig();
         const result = await syncAllDays(config.basho);
-        console.log(`[cron] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
+        console.log(`[cron:800pm] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
       } catch (error) {
-        console.error("[cron] Sync failed:", error);
+        console.error("[cron:800pm] Sync failed:", error);
       }
     },
-    { timezone: "Australia/Sydney" }
+    { timezone: "Asia/Tokyo" }
   );
 
-  // Every 2 minutes between 6:00 PM and 7:58 PM AEST
-  cron.schedule(
-    "*/2 18-19 * * *",
-    async () => {
-      console.log("[cron] Running 2-min interval sync (6-8 PM AEST)...");
-      try {
-        const config = getConfig();
-        const result = await syncAllDays(config.basho);
-        console.log(`[cron] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
-      } catch (error) {
-        console.error("[cron] Sync failed:", error);
+  // Every 2 minutes between 5:00 PM and 7:00 PM JST — syncs only the current day
+  const intervalHandler = async () => {
+    console.log("[cron:interval] Running current-day sync...");
+    try {
+      const config = getConfig();
+      const result = await syncCurrentDay(config.basho);
+      if (!result) {
+        console.log("[cron:interval] Skipped: basho not active");
+        return;
       }
-    },
-    { timezone: "Australia/Sydney" }
-  );
+      console.log(
+        `[cron:interval] Sync complete: day ${result.day}, ${result.bouts} bouts${result.pending ? " (pending)" : ""}${result.inProgress ? " (in progress)" : ""}`
+      );
+    } catch (error) {
+      console.error("[cron:interval] Sync failed:", error);
+    }
+  };
+  const tokyo = { timezone: "Asia/Tokyo" };
+  cron.schedule("*/2 17-18 * * *", intervalHandler, tokyo);
+  cron.schedule("0 19 * * *", intervalHandler, tokyo);
 
-  console.log("[cron] Scheduled sync jobs: 7:30 PM, 8:00 PM, and every 2 min 6-8 PM AEST");
+  console.log("[cron] Scheduled sync jobs: 7:30 PM JST, 8:00 PM JST, and every 2 min 5-7 PM JST");
 }

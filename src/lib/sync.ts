@@ -247,6 +247,26 @@ function getActiveStableForDay(
   return Array.from(activeByTier.values());
 }
 
+export async function syncCurrentDay(
+  bashoId: string
+): Promise<{ day: number; bouts: number; pending: boolean; inProgress: boolean } | null> {
+  const db = getDb();
+  const basho = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
+
+  if (!basho?.start_date) return null;
+
+  const start = new Date(basho.start_date);
+  const now = new Date();
+  const day = Math.floor((now.getTime() - start.getTime()) / 86400000) + 1;
+  if (day < 1 || day > 15) return null;
+
+  const result = await syncDay(bashoId, day);
+  calculateScores(bashoId);
+  return { day, ...result };
+}
+
 export async function syncAllDays(
   bashoId: string
 ): Promise<{ synced: number; pending: number }> {
