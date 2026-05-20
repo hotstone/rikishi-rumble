@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 import { isSubstitutionWindowOpen } from "@/lib/substitution";
+import { currentBashoDay } from "@/lib/basho";
 
 export async function GET(request: NextRequest) {
   const config = getConfig();
@@ -179,13 +180,7 @@ export async function GET(request: NextRequest) {
     .prepare("SELECT start_date FROM basho WHERE id = ?")
     .get(bashoId) as { start_date: string | null } | undefined;
 
-  let currentDay = 0;
-  if (basho?.start_date) {
-    const start = new Date(basho.start_date);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    currentDay = Math.max(0, Math.min(diffDays, 15));
-  }
+  const currentDay = currentBashoDay(basho?.start_date || null);
 
   return NextResponse.json({
     basho: bashoId,

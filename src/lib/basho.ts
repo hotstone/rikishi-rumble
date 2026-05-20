@@ -30,6 +30,20 @@ function bashoIdToStart(bashoId: string): Date {
   return secondSunday(year, month);
 }
 
+function jstDateString(d: Date): string {
+  // en-CA formats as YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(d);
+}
+
+/** Current basho day (1-15) in JST. Returns 0 before start or after day 15. */
+export function currentBashoDay(dbStartDate: string | null): number {
+  if (!dbStartDate) return 0;
+  const startMs = Date.parse(jstDateString(new Date(dbStartDate)));
+  const nowMs = Date.parse(jstDateString(new Date()));
+  const diff = Math.floor((nowMs - startMs) / 86400000) + 1;
+  return Math.max(0, Math.min(diff, 15));
+}
+
 /** Stable selections lock at 4pm Tokyo time (07:00 UTC) on day 1 of the basho. */
 export function stableLockDate(bashoId: string, dbStartDate: string | null): Date {
   const start = dbStartDate ? new Date(dbStartDate) : bashoIdToStart(bashoId);

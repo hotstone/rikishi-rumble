@@ -50,7 +50,7 @@ Existing users who have not yet set a password are prompted to do so on first lo
 
 Admins can reset a user's password (clears `password_hash`), forcing them through the PIN migration flow again.
 
-The config file defines the timezone for the substitution window (AEST) and other app-level settings like the current basho identifier.
+The config file defines app-level settings like the current basho identifier and a notional timezone field. All sumo-event-aligned timing (substitution window, cron sync, day boundaries) is anchored to **JST** in code, regardless of the config value.
 
 **Example config structure:**
 
@@ -105,7 +105,8 @@ All tournament data is sourced from the public API at `https://www.sumo-api.com/
 
 ### Data Sync Strategy
 
-- **Automated polling:** Two cron jobs run daily at **7:30 PM** and **8:00 PM AEST** to fetch the day's match results and update scores. The dual schedule provides redundancy -- the first run catches most results, the second picks up any stragglers or late updates.
+- **Automated polling:** Two full-basho sync cron jobs run daily at **7:30 PM JST** and **8:00 PM JST** to fetch the day's match results and update scores. The dual schedule provides redundancy -- the first run catches most results, the second picks up any stragglers or late updates. A third cron fires **every 2 minutes between 4:00 PM and 6:00 PM JST** (the live makuuchi window) and only syncs the current basho day for fast in-progress updates.
+- **Current basho day:** computed by diffing the JST calendar date of `now` against the JST calendar date of the basho's `start_date` (+1, clamped to 1-15). Day boundaries flip at JST midnight, not UTC midnight, so the day-of-basho stays aligned with the schedule in Japan.
 - **Manual override:** An admin can trigger a manual data sync at any time via a button in the UI. This is useful if the API was temporarily down during the scheduled poll or if results need to be refreshed.
 - **Caching:** Banzuke (ranking) data is fetched once at the start of each basho and cached locally. It does not change mid-tournament. Match results are cached after each daily sync.
 
@@ -231,9 +232,9 @@ Components are ordered by dependency chain. Each step builds on the previous one
 4. **User config & PIN auth:** Config file parser, user dropdown + PIN validation API route.
 5. **Stable selection:** UI for picking wrestlers per tier, API routes for saving/loading stables, tier validation.
 6. **Score calculation engine:** Match result processing, kimboshi detection, daily score aggregation.
-7. **Automated data sync:** node-cron scheduled polling (7:30 PM + 8:00 PM AEST), manual sync admin endpoint, retry logic.
+7. **Automated data sync:** node-cron scheduled polling (7:30 PM + 8:00 PM JST full sync, plus every 2 min 4-6 PM JST current-day sync), manual sync admin endpoint, retry logic.
 8. **Leaderboard:** Ranked scoreboard page, today's points, total points, wrestler names per user.
-9. **Substitution system:** Substitution UI, time window enforcement (AEST), 2-per-day limit, same-tier validation.
+9. **Substitution system:** Substitution UI, time window enforcement (JST), 2-per-day limit, same-tier validation.
 10. **Visual theme & polish:** Kunio-kun pixel art styling, retro fonts, color palette, animations, responsive design.
 
 ## Decisions Log
@@ -243,15 +244,15 @@ Components are ordered by dependency chain. Each step builds on the previous one
 | 1 | User scope | Small trusted group (5-15) | No need for full auth; config-file based users with dropdown selection |
 | 2 | Rank tier overlap | M7-12 / M13-17+ (clean split) | Fixed the M12 overlap from original requirements |
 | 3 | Substitution points | Keep accumulated points | Simplest and most intuitive; no penalty for swapping |
-| 4 | Timezone | AEST (Australia/Sydney) | User group is Australian; matches finish ~8pm AEST |
+| 4 | Timezone | JST (Asia/Tokyo) for all sumo-event timing | Substitution window, cron schedule, and day-of-basho boundaries are anchored to Japan so they stay aligned with the schedule in Tokyo and don't drift twice a year with Australian DST |
 | 5 | Kimboshi definition | Strict: Maegashira beats Yokozuna, excluding Fusen wins. Worth no points, used only as tiebreaker | Traditional definition; Fusen excluded because the Yokozuna didn't compete. Kimboshi rewards risk-taking via the tiebreaker rather than direct scoring |
 | 6 | Competition scope | Single basho at a time | Clean reset each tournament; no seasonal tracking |
-| 7 | Data sync strategy | Hybrid: auto-poll + manual override | Daily cron at 7:30 PM + 8:00 PM AEST, plus admin button for ad-hoc syncs |
+| 7 | Data sync strategy | Hybrid: auto-poll + manual override | Daily cron at 7:30 PM + 8:00 PM JST (full sync) and every 2 min 4-6 PM JST (current-day only), plus admin button for ad-hoc syncs |
 | 8 | Kyujo handling | Treat as normal losses | No special handling; user can use substitutions strategically |
 | 9 | Tech stack | Next.js + TypeScript + SQLite | Single project, lightweight, perfect for self-hosted small group app |
 | 10 | User guard | Simple 4-digit PIN per user | Prevents accidental changes; not meant as real security |
 | 11 | Admin role | Boolean flag in config per user | Admins can trigger manual syncs and manage basho settings |
-| 12 | Substitution window | 8:00 PM - 6:00 PM AEST | Opens after results are in, closes before next day's bouts |
+| 12 | Substitution window | 6:00 PM - 4:00 PM JST | Opens after results are in, closes before next day's bouts |
 | 13 | Tiebreaker | Most kimboshi wins ties | Adds a secondary incentive for high-risk tier 1 picks |
 | 14 | Hosting | Fly.io | Container-based deploy with persistent volume for SQLite; simpler than managing a VPS |
 
@@ -297,7 +298,7 @@ Components are ordered by dependency chain. Each step builds on the previous one
 - [ ] Handle substitutions in scoring (wrestler earns points only for days active)
 
 ### Phase 7: Data Sync & Cron
-- [ ] Implement node-cron jobs (7:30 PM + 8:00 PM AEST)
+- [ ] Implement node-cron jobs (7:30 PM + 8:00 PM JST full sync, plus 4-6 PM JST current-day interval)
 - [ ] Fetch daily results, update bout_results table
 - [ ] Recalculate daily_scores after each sync
 - [ ] Mark incomplete data as "pending" for admin review
@@ -311,7 +312,7 @@ Components are ordered by dependency chain. Each step builds on the previous one
 
 ### Phase 9: Substitution System
 - [ ] API route: POST substitution (validate tier, window, daily limit)
-- [ ] Time window enforcement (8:00 PM - 2:00 PM AEST)
+- [ ] Time window enforcement (6:00 PM - 4:00 PM JST)
 - [ ] 2-per-day limit enforcement
 - [ ] Substitution UI -- current stable with swap buttons
 - [ ] Countdown timer for substitution window

@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { getConfig } from "./config";
+import { currentBashoDay } from "./basho";
 import {
   fetchBanzuke,
   fetchTorikumi,
@@ -255,12 +256,8 @@ export async function syncCurrentDay(
     .prepare("SELECT start_date FROM basho WHERE id = ?")
     .get(bashoId) as { start_date: string | null } | undefined;
 
-  if (!basho?.start_date) return null;
-
-  const start = new Date(basho.start_date);
-  const now = new Date();
-  const day = Math.floor((now.getTime() - start.getTime()) / 86400000) + 1;
-  if (day < 1 || day > 15) return null;
+  const day = currentBashoDay(basho?.start_date || null);
+  if (day < 1) return null;
 
   const result = await syncDay(bashoId, day);
   calculateScores(bashoId);
