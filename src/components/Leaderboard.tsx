@@ -29,7 +29,7 @@ interface LeaderboardData {
   leaderboard: LeaderboardEntry[];
   currentDay: number;
   activeDay: number;
-  basho: string;
+  basho: string | null;
   hasPendingResults: boolean;
 }
 
@@ -64,7 +64,7 @@ export function Leaderboard() {
       <div className="retro-panel-header flex-col sm:flex-row gap-1">
         <h2 className="font-pixel text-sm">SCOREBOARD</h2>
         <span className="font-pixel text-xs text-retro-cyan">
-          {bashoLabel(basho)}{currentDay > 0 && ` - DAY ${currentDay}`}
+          {basho ? bashoLabel(basho) : "NO ACTIVE BASHO"}{currentDay > 0 && ` - DAY ${currentDay}`}
         </span>
       </div>
 
