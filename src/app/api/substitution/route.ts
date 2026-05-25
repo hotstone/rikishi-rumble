@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { getConfig } from "@/lib/config";
+import { getDb, getActiveBashoId } from "@/lib/db";
 import { isSubstitutionWindowOpen } from "@/lib/substitution";
 import { getSessionFromRequest } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
   const bashoId =
-    request.nextUrl.searchParams.get("basho") || getConfig().basho;
+    request.nextUrl.searchParams.get("basho") || getActiveBashoId();
 
   if (!userId) {
     return NextResponse.json({ error: "userId required" }, { status: 400 });
+  }
+
+  if (!bashoId) {
+    return NextResponse.json({ substitutions: [], windowOpen: false });
   }
 
   const db = getDb();
@@ -54,8 +57,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const config = getConfig();
-  const bashoId = config.basho;
+  const bashoId = getActiveBashoId();
+  if (!bashoId) {
+    return NextResponse.json({ error: "No active basho" }, { status: 503 });
+  }
   const userId = session.userId;
   const db = getDb();
 

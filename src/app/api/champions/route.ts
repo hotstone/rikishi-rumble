@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { getConfig } from "@/lib/config";
+import { getDb, getActiveBashoId } from "@/lib/db";
 import { bashoLabel } from "@/lib/basho";
 
 const LEGENDARY_PLACEHOLDERS = [
@@ -15,7 +14,7 @@ const LEGENDARY_PLACEHOLDERS = [
 ];
 
 export async function GET() {
-  const config = getConfig();
+  const activeBashoId = getActiveBashoId();
   const db = getDb();
 
   const rows = db
@@ -24,11 +23,11 @@ export async function GET() {
               SUM(ds.points) as total_points, SUM(ds.kimboshi) as total_kimboshi
        FROM daily_scores ds
        JOIN users u ON u.id = ds.user_id
-       WHERE ds.basho_id != ?
+       WHERE ds.basho_id != COALESCE(?, '')
        GROUP BY ds.basho_id, ds.user_id
        ORDER BY ds.basho_id, total_points DESC, total_kimboshi DESC`
     )
-    .all(config.basho) as {
+    .all(activeBashoId) as {
     basho_id: string;
     user_id: string;
     name: string;

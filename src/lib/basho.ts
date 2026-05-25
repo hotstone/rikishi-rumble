@@ -8,7 +8,6 @@ const BASHO_NAMES: Record<string, string> = {
 };
 
 const BASHO_MONTHS = [1, 3, 5, 7, 9, 11];
-const BASHO_DURATION_DAYS = 15;
 
 /** Converts a basho ID like "202603" to "HARU BASHO 2026". */
 export function bashoLabel(id: string): string {
@@ -60,7 +59,7 @@ export function bashoIdFromDate(year: number, month: number): string {
 }
 
 export function nextBashoStart(now: Date = new Date()): { bashoId: string; startDate: Date } {
-  let year = now.getUTCFullYear();
+  const year = now.getUTCFullYear();
   for (let i = 0; i < BASHO_MONTHS.length * 2; i++) {
     const idx = i % BASHO_MONTHS.length;
     const y = year + Math.floor(i / BASHO_MONTHS.length);
@@ -73,26 +72,37 @@ export function nextBashoStart(now: Date = new Date()): { bashoId: string; start
   return { bashoId: bashoIdFromDate(year + 1, 1), startDate: secondSunday(year + 1, 1) };
 }
 
+export function mostRecentBashoStart(now: Date = new Date()): { bashoId: string; startDate: Date } | null {
+  const year = now.getUTCFullYear();
+  for (let i = 0; i < BASHO_MONTHS.length * 2; i++) {
+    const idx = (BASHO_MONTHS.length - 1) - (i % BASHO_MONTHS.length);
+    const y = year - Math.floor(i / BASHO_MONTHS.length);
+    const month = BASHO_MONTHS[idx];
+    const start = secondSunday(y, month);
+    if (start <= now) {
+      return { bashoId: bashoIdFromDate(y, month), startDate: start };
+    }
+  }
+  return null;
+}
+
 export function currentOrNextBashoInfo(
-  configBashoId: string,
+  activeBashoId: string | null,
   dbStartDate: string | null
 ): { active: boolean; countdownTarget: Date | null; nextBashoId: string; nextBashoLabel: string } {
   const now = new Date();
-  const startDate = dbStartDate ? new Date(dbStartDate) : bashoIdToStart(configBashoId);
-  const lockDate = stableLockDate(configBashoId, dbStartDate);
-  const end = new Date(startDate.getTime() + BASHO_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
-  if (now < lockDate) {
-    return {
-      active: false,
-      countdownTarget: lockDate,
-      nextBashoId: configBashoId,
-      nextBashoLabel: bashoLabel(configBashoId),
-    };
-  }
-
-  if (now < end) {
-    return { active: true, countdownTarget: null, nextBashoId: configBashoId, nextBashoLabel: bashoLabel(configBashoId) };
+  if (activeBashoId) {
+    const lockDate = stableLockDate(activeBashoId, dbStartDate);
+    if (now < lockDate) {
+      return {
+        active: false,
+        countdownTarget: lockDate,
+        nextBashoId: activeBashoId,
+        nextBashoLabel: bashoLabel(activeBashoId),
+      };
+    }
+    return { active: true, countdownTarget: null, nextBashoId: activeBashoId, nextBashoLabel: bashoLabel(activeBashoId) };
   }
 
   const next = nextBashoStart(now);

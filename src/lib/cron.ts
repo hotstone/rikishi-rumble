@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { getConfig } from "./config";
+import { getActiveBashoId } from "./db";
 import { syncAllDays, syncCurrentDay } from "./sync";
 
 let scheduled = false;
@@ -14,8 +14,12 @@ export function startCronJobs() {
     async () => {
       console.log("[cron:730pm] Running scheduled sync...");
       try {
-        const config = getConfig();
-        const result = await syncAllDays(config.basho);
+        const bashoId = getActiveBashoId();
+        if (!bashoId) {
+          console.log("[cron:730pm] Skipped: no active basho");
+          return;
+        }
+        const result = await syncAllDays(bashoId);
         console.log(`[cron:730pm] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
       } catch (error) {
         console.error("[cron:730pm] Sync failed:", error);
@@ -30,8 +34,12 @@ export function startCronJobs() {
     async () => {
       console.log("[cron:800pm] Running scheduled sync...");
       try {
-        const config = getConfig();
-        const result = await syncAllDays(config.basho);
+        const bashoId = getActiveBashoId();
+        if (!bashoId) {
+          console.log("[cron:800pm] Skipped: no active basho");
+          return;
+        }
+        const result = await syncAllDays(bashoId);
         console.log(`[cron:800pm] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
       } catch (error) {
         console.error("[cron:800pm] Sync failed:", error);
@@ -44,8 +52,12 @@ export function startCronJobs() {
   const intervalHandler = async () => {
     console.log("[cron:interval] Running current-day sync...");
     try {
-      const config = getConfig();
-      const result = await syncCurrentDay(config.basho);
+      const bashoId = getActiveBashoId();
+      if (!bashoId) {
+        console.log("[cron:interval] Skipped: no active basho");
+        return;
+      }
+      const result = await syncCurrentDay(bashoId);
       if (!result) {
         console.log("[cron:interval] Skipped: basho not active");
         return;

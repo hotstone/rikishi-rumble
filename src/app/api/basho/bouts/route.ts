@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { getConfig } from "@/lib/config";
+import { getDb, getActiveBashoId } from "@/lib/db";
 import { isSubstitutionWindowOpen } from "@/lib/substitution";
 import { currentBashoDay } from "@/lib/basho";
 
 export async function GET(request: NextRequest) {
-  const config = getConfig();
   const bashoId =
-    request.nextUrl.searchParams.get("basho") || config.basho;
+    request.nextUrl.searchParams.get("basho") || getActiveBashoId();
   const requestingUserId = request.nextUrl.searchParams.get("userId") || null;
+
+  if (!bashoId) {
+    return NextResponse.json({ basho: null, currentDay: 0, syncedDays: [], boutsByDay: {} });
+  }
 
   const db = getDb();
 
@@ -113,21 +115,22 @@ export async function GET(request: NextRequest) {
     rikishiOwners[day] = dayOwners;
   }
 
-  // During substitution window, hide other users' owners for undecided days
+  // During substitution window, hide other users' owners for days that haven't
+  // started yet (no bouts decided). Once any bout on a day has resolved, picks
+  // become visible to everyone.
   const currentBashoRow = db
     .prepare("SELECT start_date FROM basho WHERE id = ?")
-    .get(config.basho) as { start_date: string | null } | undefined;
+    .get(bashoId) as { start_date: string | null } | undefined;
   const windowOpen = isSubstitutionWindowOpen(
     currentBashoRow?.start_date ? new Date(currentBashoRow.start_date) : null
   );
   if (windowOpen) {
-    const decidedByDay = new Map<number, boolean>();
+    const anyDecidedByDay = new Map<number, boolean>();
     for (const bout of bouts) {
-      if (!decidedByDay.has(bout.day)) decidedByDay.set(bout.day, true);
-      if (!bout.winner_id) decidedByDay.set(bout.day, false);
+      if (bout.winner_id) anyDecidedByDay.set(bout.day, true);
     }
-    for (const [day, allDecided] of decidedByDay) {
-      if (!allDecided && rikishiOwners[day]) {
+    for (const day of Object.keys(rikishiOwners).map(Number)) {
+      if (!anyDecidedByDay.get(day)) {
         for (const rikishiId of Object.keys(rikishiOwners[day]).map(Number)) {
           rikishiOwners[day][rikishiId] = rikishiOwners[day][rikishiId].filter(
             (initials) => {

@@ -50,14 +50,13 @@ Existing users who have not yet set a password are prompted to do so on first lo
 
 Admins can reset a user's password (clears `password_hash`), forcing them through the PIN migration flow again.
 
-The config file defines app-level settings like the current basho identifier and a notional timezone field. All sumo-event-aligned timing (substitution window, cron sync, day boundaries) is anchored to **JST** in code, regardless of the config value.
+The config file defines users and a notional timezone field. The active basho is **not** stored anywhere — it is computed on demand from (a) the calendar (each basho starts on the second Sunday of an odd month and runs 15 days) and (b) day-15 bout completion (a basho is active only while it has unresolved bouts on day 15 or earlier). See "Active basho determination" in the Data Sync section. All sumo-event-aligned timing (substitution window, cron sync, day boundaries) is anchored to **JST** in code, regardless of the config value.
 
 **Example config structure:**
 
 ```json
 {
   "timezone": "Australia/Sydney",
-  "basho": "202603",
   "users": [
     { "name": "Matt", "pin": "1234", "admin": true },
     { "name": "Sarah", "pin": "5678", "admin": false }
@@ -107,6 +106,7 @@ All tournament data is sourced from the public API at `https://www.sumo-api.com/
 
 - **Automated polling:** Two full-basho sync cron jobs run daily at **7:30 PM JST** and **8:00 PM JST** to fetch the day's match results and update scores. The dual schedule provides redundancy -- the first run catches most results, the second picks up any stragglers or late updates. A third cron fires **every 2 minutes between 4:00 PM and 6:00 PM JST** (the live makuuchi window) and only syncs the current basho day for fast in-progress updates.
 - **Current basho day:** computed by diffing the JST calendar date of `now` against the JST calendar date of the basho's `start_date` (+1, clamped to 1-15). Day boundaries flip at JST midnight, not UTC midnight, so the day-of-basho stays aligned with the schedule in Japan.
+- **Active basho determination:** `getActiveBasho()` derives the active basho on every call. It takes the most recent calendar basho start ≤ now (second Sunday of the latest passed odd month), looks up its `start_date` in the `basho` table if present (otherwise uses the calendar date), then: returns `null` if `day < 1` (basho hasn't started); returns the basho if `day` is 1-14; on day 15, returns the basho only if at least one bout still has `winner_id IS NULL` (or no bouts have been synced yet), and returns `null` otherwise. No `is_active` flag is stored — completeness of day 15 in `bout_results` is the single source of truth for end-of-basho.
 - **Manual override:** An admin can trigger a manual data sync at any time via a button in the UI. This is useful if the API was temporarily down during the scheduled poll or if results need to be refreshed.
 - **Caching:** Banzuke (ranking) data is fetched once at the start of each basho and cached locally. It does not change mid-tournament. Match results are cached after each daily sync.
 

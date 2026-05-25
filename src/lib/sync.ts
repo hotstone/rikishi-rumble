@@ -42,10 +42,14 @@ export async function syncDay(
     const result = await fetchTorikumi(bashoId, day);
     matches = result.matches;
 
-    // Store basho start date if available
+    // Ensure basho row exists and capture start_date if newly known
     if (result.startDate) {
-      db.prepare("UPDATE basho SET start_date = ? WHERE id = ? AND start_date IS NULL")
-        .run(result.startDate, bashoId);
+      db.prepare(
+        `INSERT INTO basho (id, start_date, status) VALUES (?, ?, 'active')
+         ON CONFLICT(id) DO UPDATE SET start_date = COALESCE(basho.start_date, excluded.start_date)`
+      ).run(bashoId, result.startDate);
+    } else {
+      db.prepare("INSERT OR IGNORE INTO basho (id, status) VALUES (?, 'active')").run(bashoId);
     }
   } catch {
     logSync(bashoId, day, "error", "Failed to fetch torikumi");

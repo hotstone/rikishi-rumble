@@ -14,7 +14,6 @@ export interface UserSession {
 
 export interface AppConfig {
   timezone: string;
-  basho: string;
   users: UserConfig[];
 }
 

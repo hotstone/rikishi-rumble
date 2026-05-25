@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { getConfig } from "@/lib/config";
+import { getDb, getActiveBashoId } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const tier = request.nextUrl.searchParams.get("tier");
   const dayParam = request.nextUrl.searchParams.get("day");
   const bashoId =
-    request.nextUrl.searchParams.get("basho") || getConfig().basho;
+    request.nextUrl.searchParams.get("basho") || getActiveBashoId();
+
+  if (!bashoId) {
+    return NextResponse.json({ wrestlers: [], basho: null });
+  }
 
   const db = getDb();
 

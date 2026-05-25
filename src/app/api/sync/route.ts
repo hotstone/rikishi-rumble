@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConfig } from "@/lib/config";
+import { getActiveBashoId } from "@/lib/db";
 import { syncBanzuke, syncAllDays, syncDay, calculateScores } from "@/lib/sync";
 import { getSessionFromRequest } from "@/lib/auth";
 
@@ -13,8 +13,10 @@ export async function POST(request: NextRequest) {
   }
 
   const { action, day } = await request.json();
-  const config = getConfig();
-  const bashoId = config.basho;
+  const bashoId = getActiveBashoId();
+  if (!bashoId) {
+    return NextResponse.json({ error: "No active basho" }, { status: 503 });
+  }
 
   try {
     if (action === "banzuke") {

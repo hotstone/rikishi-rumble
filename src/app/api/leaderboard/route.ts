@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { getConfig } from "@/lib/config";
+import { getDb, getActiveBashoId } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
-  const config = getConfig();
   const bashoId =
-    request.nextUrl.searchParams.get("basho") || config.basho;
+    request.nextUrl.searchParams.get("basho") || getActiveBashoId();
+
+  if (!bashoId) {
+    return NextResponse.json({
+      leaderboard: [],
+      currentDay: 0,
+      activeDay: 0,
+      basho: null,
+      hasPendingResults: false,
+    });
+  }
 
   const db = getDb();
 
