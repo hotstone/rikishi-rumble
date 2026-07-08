@@ -1,5 +1,4 @@
-function getJstHour(): number {
-  const now = new Date();
+function getJstHour(now: Date): number {
   const jstTime = new Date(
     now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" })
   );
@@ -16,12 +15,14 @@ export function finalSubWindowClose(bashoStartDate: Date): Date {
   return new Date(bashoStartDate.getTime() + (14 * 24 + 7) * 3600 * 1000);
 }
 
-export function isSubstitutionWindowOpen(bashoStartDate: Date | null): boolean {
+export function isSubstitutionWindowOpen(
+  bashoStartDate: Date | null,
+  now: Date = new Date()
+): boolean {
   if (!bashoStartDate) return false;
-  const now = new Date();
   if (now < firstSubWindowOpen(bashoStartDate)) return false;
   if (now >= finalSubWindowClose(bashoStartDate)) return false;
-  const hour = getJstHour();
+  const hour = getJstHour(now);
   // Daily window: 18:00 JST → 16:00 JST next day, blackout 16:00–18:00 JST
   return hour >= 18 || hour < 16;
 }
