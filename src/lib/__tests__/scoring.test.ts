@@ -48,13 +48,10 @@ function seedStables(db: Db) {
   const insert = db.prepare(
     "INSERT INTO stables (basho_id, user_id, tier, rikishi_id, selected_at) VALUES (?, ?, ?, ?, ?)"
   );
-  // Alice's tier 3 row deliberately holds the POST-substitution wrestler (11),
-  // simulating the historical stables-mutation corruption. The substitution
-  // record below (old=5, new=11) is what lets scoring recover the true origin.
   const rows: [string, number, number][] = [
     ["alice", 1, 1],
     ["alice", 2, 3],
-    ["alice", 3, 11],
+    ["alice", 3, 5],
     ["alice", 4, 7],
     ["alice", 5, 9],
     ["bob", 1, 2],
@@ -126,10 +123,8 @@ beforeAll(async () => {
 });
 
 describe("calculateScores", () => {
-  it("scores day 1 using the pre-substitution stable, correcting the mutated stables row", () => {
+  it("scores day 1 using the pre-substitution stable", () => {
     // Alice's active day-1 stable is {1, 3, 5, 7, 9}; winners: 5 and 9.
-    // Counting 5's win proves the origin correction: her stables row says 11,
-    // which did not fight on day 1.
     expect(scores.alice[1]).toEqual({ points: 2, kimboshi: 1 });
   });
 

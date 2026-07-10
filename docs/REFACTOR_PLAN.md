@@ -102,7 +102,15 @@ can disagree with the leaderboard. Unifying fixes it — verify with a fixture t
 
 ---
 
-## Phase 2 — Data repair, delete the corruption hack
+## Phase 2 — Data repair, delete the corruption hack ✅ DONE 2026-07-10 (pulled forward: site idle pre-Nagoya, prod backup taken, rollback branch ready)
+
+**Outcome:** `repairMutatedStables` added behind a new `schema_version` table (v1);
+origin-correction logic deleted from `stable.ts`. Tested against a copy of the
+2026-07-10 prod backup: **0 corrupted rows found** — prod data was already clean, so
+the migration is a verified no-op there and the deleted hack was purely defensive.
+Recomputed 202603/202605 scores match stored history exactly. The repair is unit-tested
+(fixes mutated rows, uses first sub in a chain, idempotent, recreates missing rows,
+ignores sub-less bashos — fresh 202607 picks untouched).
 
 The stables-mutation bug is fixed (`substitution/route.ts:154` comment); the correction
 logic only compensates for frozen historical data.

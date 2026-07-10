@@ -4,7 +4,6 @@ type Db = Database.Database;
 
 interface SubRow {
   tier: number;
-  old_rikishi: number;
   new_rikishi: number;
   day: number;
 }
@@ -22,22 +21,12 @@ function loadStableState(
 
   const subs = db
     .prepare(
-      "SELECT tier, old_rikishi, new_rikishi, day FROM substitutions WHERE basho_id = ? AND user_id = ? ORDER BY created_at"
+      "SELECT tier, new_rikishi, day FROM substitutions WHERE basho_id = ? AND user_id = ? ORDER BY created_at"
     )
     .all(bashoId, userId) as SubRow[];
 
   const byTier = new Map<number, number>();
   for (const s of stables) byTier.set(s.tier, s.rikishi_id);
-
-  // Use the first sub's old_rikishi as the true original per tier — corrects
-  // historical rows where the stables table was mutated on substitution.
-  const seenTiers = new Set<number>();
-  for (const sub of subs) {
-    if (!seenTiers.has(sub.tier)) {
-      byTier.set(sub.tier, sub.old_rikishi);
-      seenTiers.add(sub.tier);
-    }
-  }
 
   return { byTier, subs };
 }

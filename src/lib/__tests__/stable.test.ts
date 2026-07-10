@@ -29,9 +29,8 @@ beforeAll(() => {
   for (const [tier, rikishi] of [[1, 1], [2, 3], [3, 5], [4, 7], [5, 9]]) {
     stable.run(BASHO, "alice", tier, rikishi, "t0");
   }
-  // bob: tier 2 row corrupted by the historical mutation bug — holds the
-  // post-substitution wrestler (40); his sub record says old=4, new=40.
-  for (const [tier, rikishi] of [[1, 2], [2, 40], [3, 6], [4, 8], [5, 10]]) {
+  // bob: one substitution in tier 2 (4 -> 40 on day 5)
+  for (const [tier, rikishi] of [[1, 2], [2, 4], [3, 6], [4, 8], [5, 10]]) {
     stable.run(BASHO, "bob", tier, rikishi, "t0");
   }
 
@@ -61,8 +60,7 @@ describe("stableForDay", () => {
     expect(stableForDay(db, BASHO, "alice", 15).get(3)).toBe(12);
   });
 
-  it("recovers the true original from the first sub when the stables row was mutated", () => {
-    // bob's stables row says 40, but before his day-5 sub the real pick was 4
+  it("keeps the original pick through the sub's own day, swapped from the next", () => {
     expect(stableForDay(db, BASHO, "bob", 1).get(2)).toBe(4);
     expect(stableForDay(db, BASHO, "bob", 5).get(2)).toBe(4);
     expect(stableForDay(db, BASHO, "bob", 6).get(2)).toBe(40);

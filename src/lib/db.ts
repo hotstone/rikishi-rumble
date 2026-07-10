@@ -144,6 +144,57 @@ function migrateSchema(db: Database.Database) {
   if (!userColNames.has("admin")) {
     db.exec("ALTER TABLE users ADD COLUMN admin INTEGER DEFAULT 0");
   }
+
+  // Versioned one-off migrations
+  db.exec("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)");
+  const versionRow = db.prepare("SELECT MAX(version) as v FROM schema_version").get() as {
+    v: number | null;
+  };
+  const version = versionRow.v ?? 0;
+
+  if (version < 1) {
+    repairMutatedStables(db);
+    db.prepare("INSERT INTO schema_version (version) VALUES (1)").run();
+  }
+}
+
+/**
+ * One-off repair for the historical stables-mutation bug: substitutions used
+ * to overwrite stables.rikishi_id, losing the original pick. The first sub's
+ * old_rikishi per (basho, user, tier) is the true original — restore it.
+ * Post-bug-fix rows already match their first sub's old_rikishi, so this is a
+ * no-op for them. Exported for tests.
+ */
+export function repairMutatedStables(db: Database.Database) {
+  const subs = db
+    .prepare(
+      "SELECT basho_id, user_id, tier, old_rikishi, created_at FROM substitutions ORDER BY created_at"
+    )
+    .all() as {
+    basho_id: string;
+    user_id: string;
+    tier: number;
+    old_rikishi: number;
+    created_at: string;
+  }[];
+
+  const restore = db.prepare(
+    `INSERT INTO stables (basho_id, user_id, tier, rikishi_id, selected_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(basho_id, user_id, tier) DO UPDATE SET rikishi_id = excluded.rikishi_id`
+  );
+
+  const transaction = db.transaction(() => {
+    const seen = new Set<string>();
+    for (const sub of subs) {
+      const key = `${sub.basho_id}|${sub.user_id}|${sub.tier}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      restore.run(sub.basho_id, sub.user_id, sub.tier, sub.old_rikishi, sub.created_at);
+    }
+  });
+
+  transaction();
 }
 
 function syncUsersFromConfig(db: Database.Database) {
