@@ -3,6 +3,7 @@ import {
   firstSubWindowOpen,
   finalSubWindowClose,
   isSubstitutionWindowOpen,
+  subWindowIntervals,
 } from "@/lib/substitution";
 
 // Nagoya 2026: starts 2026-07-12T00:00:00Z (09:00 JST on day 1).
@@ -15,6 +16,29 @@ describe("window boundaries", () => {
 
   it("final window closes 16:00 JST on day 15", () => {
     expect(finalSubWindowClose(start).toISOString()).toBe("2026-07-26T07:00:00.000Z");
+  });
+});
+
+describe("subWindowIntervals", () => {
+  it("produces 14 nightly windows spanning first open to final close", () => {
+    const windows = subWindowIntervals(start);
+    expect(windows).toHaveLength(14);
+    expect(windows[0].opensAt).toEqual(firstSubWindowOpen(start));
+    expect(windows[13].closesAt).toEqual(finalSubWindowClose(start));
+  });
+
+  it("each window opens 18:00 JST and closes 16:00 JST the next day", () => {
+    const windows = subWindowIntervals(start);
+    expect(windows[1].opensAt.toISOString()).toBe("2026-07-13T09:00:00.000Z");
+    expect(windows[1].closesAt.toISOString()).toBe("2026-07-14T07:00:00.000Z");
+  });
+
+  it("leaves a 2-hour blackout between consecutive windows", () => {
+    const windows = subWindowIntervals(start);
+    for (let i = 1; i < windows.length; i++) {
+      const gap = windows[i].opensAt.getTime() - windows[i - 1].closesAt.getTime();
+      expect(gap).toBe(2 * 3600 * 1000);
+    }
   });
 });
 

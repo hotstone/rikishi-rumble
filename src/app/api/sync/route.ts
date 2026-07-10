@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveBashoId } from "@/lib/db";
+import { getActiveBashoId } from "@/lib/active-basho";
 import { syncBanzuke, syncAllDays, syncDay, calculateScores } from "@/lib/sync";
-import { getSessionFromRequest } from "@/lib/auth";
+import { getSessionFromRequest } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   const session = getSessionFromRequest(request);

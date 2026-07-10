@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { userIdFromName } from "@/lib/users";
 
 interface Bout {
   east_id: number;
@@ -39,9 +40,7 @@ export function BashoPage({ userName }: { userName?: string }) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
   const initialLoad = useRef(true);
 
-  const userId = userName
-    ? userName.toLowerCase().replace(/\s+/g, "-")
-    : null;
+  const userId = userName ? userIdFromName(userName) : null;
 
   const fetchData = useCallback(() => {
     const url = userId

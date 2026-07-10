@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, getActiveBashoId } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { getActiveBashoId } from "@/lib/active-basho";
 import { isSubstitutionWindowOpen } from "@/lib/substitution";
-import { getSessionFromRequest } from "@/lib/auth";
+import { getSessionFromRequest } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");

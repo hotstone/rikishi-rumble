@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, getActiveBashoId } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { getActiveBashoId } from "@/lib/active-basho";
+import { stableForDay } from "@/lib/stable";
 
 export async function GET(request: NextRequest) {
   const bashoId =
@@ -68,39 +70,11 @@ export async function GET(request: NextRequest) {
       )
       .get(bashoId, user.id, currentDay) as { points: number; kimboshi: number } | undefined;
 
-    // Get original stable + all subs (shared for both dailyWrestlers and current stable)
-    const stableRows = db
-      .prepare("SELECT tier, rikishi_id FROM stables WHERE basho_id = ? AND user_id = ? ORDER BY tier")
-      .all(bashoId, user.id) as { tier: number; rikishi_id: number }[];
-
-    const allSubs = db
-      .prepare("SELECT tier, old_rikishi, new_rikishi, day FROM substitutions WHERE basho_id = ? AND user_id = ? ORDER BY created_at")
-      .all(bashoId, user.id) as { tier: number; old_rikishi: number; new_rikishi: number; day: number }[];
-
-    // Helper: reconstruct active stable (tier -> rikishi_id) for a given day
-    function stableForDay(day: number): Map<number, number> {
-      const tierMap = new Map<number, number>();
-      for (const s of stableRows) tierMap.set(s.tier, s.rikishi_id);
-      // Correct for stables mutation bug: use first sub's old_rikishi as true origin
-      const seenTiers = new Set<number>();
-      for (const sub of allSubs) {
-        if (!seenTiers.has(sub.tier)) {
-          tierMap.set(sub.tier, sub.old_rikishi);
-          seenTiers.add(sub.tier);
-        }
-      }
-      // Apply subs effective before this day
-      for (const sub of allSubs) {
-        if (sub.day < day) tierMap.set(sub.tier, sub.new_rikishi);
-      }
-      return tierMap;
-    }
-
     // Build dailyWrestlers: for each day with results, the active stable + wins that day
     const dailyWrestlers: Record<number, { tier: number; rikishi_id: number; name: string; rank: string; points: number; kimboshi: number }[]> = {};
 
     for (const { day } of daysWithResults) {
-      const tierMap = stableForDay(day);
+      const tierMap = stableForDay(db, bashoId, user.id, day);
       dailyWrestlers[day] = [...tierMap.entries()]
         .sort(([a], [b]) => a - b)
         .map(([tier, rikishi_id]) => {

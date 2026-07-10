@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getDb, getActiveBashoId } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { getActiveBashoId } from "@/lib/active-basho";
 import { bashoLabel } from "@/lib/basho";
 
 const LEGENDARY_PLACEHOLDERS = [

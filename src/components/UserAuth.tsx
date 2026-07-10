@@ -1,12 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { UserSession } from "@/types";
 
-export interface UserSession {
-  userId: string;
-  name: string;
-  admin: boolean;
-}
+export type { UserSession };
 
 export function useAuth() {
   const [session, setSession] = useState<UserSession | null>(null);

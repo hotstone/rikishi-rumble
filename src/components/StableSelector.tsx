@@ -2,30 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { TIERS } from "@/types";
+import { detectClashes, type ClashBout } from "@/lib/clash";
 
 interface Wrestler {
   id: number;
   name: string;
   rank: string;
   tier: number;
-}
-
-interface Bout {
-  east_id: number;
-  east_name: string;
-  west_id: number;
-  west_name: string;
-}
-
-interface ClashInfo {
-  eastName: string;
-  westName: string;
-}
-
-function detectClashes(stableIds: Set<number>, bouts: Bout[]): ClashInfo[] {
-  return bouts
-    .filter((b) => stableIds.has(b.east_id) && stableIds.has(b.west_id))
-    .map((b) => ({ eastName: b.east_name, westName: b.west_name }));
 }
 
 function useCountdown(targetDate: Date | null) {
@@ -79,7 +62,7 @@ export function StableSelector({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [lockDate, setLockDate] = useState<Date | null>(null);
-  const [dayOneBouts, setDayOneBouts] = useState<Bout[]>([]);
+  const [dayOneBouts, setDayOneBouts] = useState<ClashBout[]>([]);
 
   const { timeLeft, locked } = useCountdown(lockDate);
 

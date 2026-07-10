@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validatePin } from "@/lib/config";
 import { getDb } from "@/lib/db";
+import { userIdFromName } from "@/lib/users";
+import { hashPassword } from "@/lib/auth";
 import {
-  hashPassword,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
   makeSessionCookieValue,
-} from "@/lib/auth";
+} from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   const { name, pin, password } = await request.json();
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = name.toLowerCase().replace(/\s+/g, "-");
+  const userId = userIdFromName(name);
   const db = getDb();
   const user = db
     .prepare("SELECT id, name, password_hash, admin FROM users WHERE id = ?")

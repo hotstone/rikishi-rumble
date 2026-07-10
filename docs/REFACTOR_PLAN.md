@@ -18,7 +18,7 @@ Deploys go via push to main (CI runs `fly deploy`). Never `fly deploy` locally.
 
 ---
 
-## Phase 0 — Test safety net (safe during basho)
+## Phase 0 — Test safety net (safe during basho) ✅ DONE 2026-07-08
 
 New dev deps: `vitest`. New script: `"test": "vitest run"`. Add a CI test step before deploy.
 
@@ -45,9 +45,23 @@ known basho day.
 
 ---
 
-## Phase 1 — Extract the domain layer (gap after Nagoya)
+## Phase 1 — Extract the domain layer ✅ DONE 2026-07-08 (pulled forward pre-Nagoya)
 
 Pure code movement + de-duplication. No behaviour change except one bug fix (1d below).
+
+**Deviations from plan as written:**
+- `getActiveBasho` moved to new `src/lib/active-basho.ts`, NOT `basho.ts` — client
+  components import `bashoLabel` from basho.ts, and co-locating DB code would pull
+  better-sqlite3 into the client bundle.
+- Session helpers moved to new `src/lib/session.ts` (auth.ts keeps only bcrypt) so
+  middleware doesn't bundle bcryptjs. `UserSession` canonical in `types/index.ts`.
+- `users.ts` holds only the pure `userIdFromName` (client-safe; BashoPage uses it);
+  `syncUsersFromConfig` stayed in db.ts since config.ts's `fs` import is server-only.
+- `/api/basho` returns a `subWindows` array (14 nightly `{opensAt, closesAt}` UTC pairs)
+  instead of four named fields; `isSubstitutionWindowOpen` is now derived from the same
+  intervals, so server rule and client display can't diverge.
+- Extra: shared `detectClashes` also adopted by StableSelector (3rd copy found);
+  verified post-refactor `calculateScores` reproduces prod 202603/202605 scores exactly.
 
 ### 1a. `src/lib/time.ts` — single JST implementation
 - `jstDateString(d)`, `jstHour(now?)`, `jstParts(now?)` built on `Intl.DateTimeFormat` parts.

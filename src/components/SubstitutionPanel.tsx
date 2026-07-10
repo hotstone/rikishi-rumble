@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { detectClashes, type ClashBout, type ClashInfo } from "@/lib/clash";
 
 type WindowStatus = "before-basho" | "open" | "blackout" | "after-basho";
 
@@ -12,71 +13,48 @@ function formatDiff(diffMs: number): string {
   return `${String(h).padStart(2, "0")}H ${String(m).padStart(2, "0")}M ${String(s).padStart(2, "0")}S`;
 }
 
-function useSubWindowCountdown(bashoStartDate: Date | null) {
+interface SubWindow {
+  opensAt: Date;
+  closesAt: Date;
+}
+
+/** Window state and countdown from the server's absolute window timestamps. */
+function useSubWindowCountdown(windows: SubWindow[]) {
   const [timeLeft, setTimeLeft] = useState("");
   const [status, setStatus] = useState<WindowStatus>("before-basho");
 
   useEffect(() => {
-    if (!bashoStartDate) return;
-
-    const firstOpen = new Date(bashoStartDate.getTime() + 9 * 3600 * 1000);
-    const finalClose = new Date(bashoStartDate.getTime() + (14 * 24 + 7) * 3600 * 1000);
+    if (windows.length === 0) return;
 
     function update() {
-      const now = new Date();
+      const now = Date.now();
 
-      if (now < firstOpen) {
+      if (now < windows[0].opensAt.getTime()) {
         setStatus("before-basho");
-        setTimeLeft(formatDiff(firstOpen.getTime() - now.getTime()));
+        setTimeLeft(formatDiff(windows[0].opensAt.getTime() - now));
         return;
       }
-      if (now >= finalClose) {
+      if (now >= windows[windows.length - 1].closesAt.getTime()) {
         setStatus("after-basho");
         setTimeLeft("");
         return;
       }
 
-      // Within basho — daily 18:00 → 16:00 JST cycle
-      const jstStr = now.toLocaleString("en-US", {
-        timeZone: "Asia/Tokyo",
-        hour12: false,
-        year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit", second: "2-digit",
-      });
-      const [datePart, timePart] = jstStr.split(", ");
-      const [month, day, year] = datePart.split("/").map(Number);
-      const [hour] = timePart.split(":").map(Number);
-
-      const open = hour >= 18 || hour < 16;
-      setStatus(open ? "open" : "blackout");
-
-      let targetHour: number;
-      let targetDay = day;
-      if (open) {
-        if (hour >= 18) targetDay = day + 1;
-        targetHour = 16;
+      // The earliest window that hasn't closed is either open now or upcoming
+      const current = windows.find((w) => now < w.closesAt.getTime())!;
+      if (now >= current.opensAt.getTime()) {
+        setStatus("open");
+        setTimeLeft(formatDiff(current.closesAt.getTime() - now));
       } else {
-        targetHour = 18;
+        setStatus("blackout");
+        setTimeLeft(formatDiff(current.opensAt.getTime() - now));
       }
-
-      const targetJst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-      targetJst.setFullYear(year, month - 1, targetDay);
-      targetJst.setHours(targetHour, 0, 0, 0);
-      const jstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-      let diff = targetJst.getTime() - jstNow.getTime();
-
-      // Cap "closes in" countdown at finalClose for the last day
-      if (open) {
-        const remainingToFinalClose = finalClose.getTime() - now.getTime();
-        diff = Math.min(diff, remainingToFinalClose);
-      }
-      setTimeLeft(formatDiff(diff));
     }
 
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [bashoStartDate]);
+  }, [windows]);
 
   return { timeLeft, status, isOpen: status === "open" };
 }
@@ -104,25 +82,6 @@ interface SubstitutionRecord {
   created_at: string;
 }
 
-interface Bout {
-  east_id: number;
-  east_name: string;
-  west_id: number;
-  west_name: string;
-  winner_id: number | null;
-}
-
-interface ClashInfo {
-  eastName: string;
-  westName: string;
-}
-
-function detectClashes(stableIds: Set<number>, bouts: Bout[]): ClashInfo[] {
-  return bouts
-    .filter((b) => stableIds.has(b.east_id) && stableIds.has(b.west_id))
-    .map((b) => ({ eastName: b.east_name, westName: b.west_name }));
-}
-
 export function SubstitutionPanel({
   userId,
   userName,
@@ -133,7 +92,7 @@ export function SubstitutionPanel({
   const [stable, setStable] = useState<StableEntry[]>([]);
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [substitutions, setSubstitutions] = useState<SubstitutionRecord[]>([]);
-  const [boutsByDay, setBoutsByDay] = useState<Record<number, Bout[]>>({});
+  const [boutsByDay, setBoutsByDay] = useState<Record<number, ClashBout[]>>({});
   const [swappingTier, setSwappingTier] = useState<number | null>(null);
   const [pendingSwap, setPendingSwap] = useState<{
     tier: number;
@@ -143,7 +102,7 @@ export function SubstitutionPanel({
   } | null>(null);
   const [message, setMessage] = useState("");
   const [currentDay, setCurrentDay] = useState(1);
-  const [bashoStartDate, setBashoStartDate] = useState<Date | null>(null);
+  const [subWindows, setSubWindows] = useState<SubWindow[]>([]);
 
   const loadData = useCallback(async () => {
     const [stableRes, subRes, lbRes, boutsRes, bashoRes] = await Promise.all([
@@ -163,13 +122,18 @@ export function SubstitutionPanel({
     setSubstitutions(subRes.substitutions);
     setCurrentDay(day);
     setBoutsByDay(boutsRes.boutsByDay || {});
-    setBashoStartDate(bashoRes.startDate ? new Date(bashoRes.startDate) : null);
+    setSubWindows(
+      (bashoRes.subWindows ?? []).map((w: { opensAt: string; closesAt: string }) => ({
+        opensAt: new Date(w.opensAt),
+        closesAt: new Date(w.closesAt),
+      }))
+    );
   }, [userId]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData(); }, [loadData]);
 
-  const { timeLeft, status, isOpen: windowOpen } = useSubWindowCountdown(bashoStartDate);
+  const { timeLeft, status, isOpen: windowOpen } = useSubWindowCountdown(subWindows);
   const todaySwapCount = substitutions.filter((s) => s.day === currentDay).length;
   const swapsRemaining = todaySwapCount < 2;
 

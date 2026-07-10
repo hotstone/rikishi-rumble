@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, getActiveBashoId } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { getActiveBashoId } from "@/lib/active-basho";
 
 export async function GET(request: NextRequest) {
   const tier = request.nextUrl.searchParams.get("tier");

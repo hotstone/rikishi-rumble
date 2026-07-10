@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/lib/auth";
+import { getSessionFromRequest } from "@/lib/session";
 import { getDb } from "@/lib/db";
+import { userIdFromName } from "@/lib/users";
 
 export async function POST(request: NextRequest) {
   const session = getSessionFromRequest(request);
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   const db = getDb();
-  const targetId = targetUser.toLowerCase().replace(/\s+/g, "-");
+  const targetId = userIdFromName(targetUser);
   const user = db.prepare("SELECT id FROM users WHERE id = ?").get(targetId);
 
   if (!user) {

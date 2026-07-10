@@ -10,6 +10,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { BashoPage } from "@/components/BashoPage";
 import { RulesPanel } from "@/components/RulesPanel";
 import { bashoLabel } from "@/lib/basho";
+import { detectClashes, type ClashBout } from "@/lib/clash";
 import { BashoCountdown } from "@/components/BashoCountdown";
 import { HallOfChampions } from "@/components/HallOfChampions";
 
@@ -59,8 +60,8 @@ export default function Home() {
       fetch("/api/basho/bouts").then((r) => r.json()),
     ]).then(([stableData, boutsData]) => {
       const stableIds = new Set<number>((stableData.stable ?? []).map((s: { rikishi_id: number }) => s.rikishi_id));
-      const nextDayBouts: { east_id: number; west_id: number }[] = boutsData.boutsByDay?.[currentDay + 1] ?? [];
-      setHasSubClash(nextDayBouts.some((b) => stableIds.has(b.east_id) && stableIds.has(b.west_id)));
+      const nextDayBouts: ClashBout[] = boutsData.boutsByDay?.[currentDay + 1] ?? [];
+      setHasSubClash(detectClashes(stableIds, nextDayBouts).length > 0);
     });
   }, [session, currentDay]);
 

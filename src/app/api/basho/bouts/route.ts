@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, getActiveBashoId } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { getActiveBashoId } from "@/lib/active-basho";
 import { isSubstitutionWindowOpen } from "@/lib/substitution";
 import { currentBashoDay } from "@/lib/basho";
+import { stableForDay } from "@/lib/stable";
 
 export async function GET(request: NextRequest) {
   const bashoId =
@@ -58,23 +60,6 @@ export async function GET(request: NextRequest) {
     .prepare("SELECT id, name FROM users")
     .all() as { id: string; name: string }[];
 
-  const stables = db
-    .prepare(
-      "SELECT user_id, tier, rikishi_id FROM stables WHERE basho_id = ?"
-    )
-    .all(bashoId) as { user_id: string; tier: number; rikishi_id: number }[];
-
-  const subs = db
-    .prepare(
-      "SELECT user_id, tier, new_rikishi, day FROM substitutions WHERE basho_id = ? ORDER BY created_at"
-    )
-    .all(bashoId) as {
-    user_id: string;
-    tier: number;
-    new_rikishi: number;
-    day: number;
-  }[];
-
   const INITIALS: Record<string, string> = {
     Matt: "MH",
     Marc: "MC",
@@ -93,18 +78,7 @@ export async function GET(request: NextRequest) {
     const dayOwners: Record<number, string[]> = {};
 
     for (const user of users) {
-      const activeByTier = new Map<number, number>();
-      for (const s of stables) {
-        if (s.user_id === user.id) {
-          activeByTier.set(s.tier, s.rikishi_id);
-        }
-      }
-
-      for (const sub of subs) {
-        if (sub.user_id === user.id && sub.day < day) {
-          activeByTier.set(sub.tier, sub.new_rikishi);
-        }
-      }
+      const activeByTier = stableForDay(db, bashoId, user.id, day);
 
       for (const rikishiId of activeByTier.values()) {
         if (!dayOwners[rikishiId]) dayOwners[rikishiId] = [];

@@ -1,6 +1,8 @@
 import { getDb } from "./db";
 import { getConfig } from "./config";
 import { currentBashoDay } from "./basho";
+import { stableForDay } from "./stable";
+import { userIdFromName } from "./users";
 import {
   fetchBanzuke,
   fetchTorikumi,
@@ -170,11 +172,11 @@ export function calculateScores(bashoId: string): void {
     deleteScores.run(bashoId);
 
     for (const user of config.users) {
-      const userId = user.name.toLowerCase().replace(/\s+/g, "-");
+      const userId = userIdFromName(user.name);
 
       for (const { day } of days) {
         // Get user's active stable for this day (accounting for substitutions)
-        const activeWrestlers = getActiveStableForDay(db, bashoId, userId, day);
+        const activeWrestlers = [...stableForDay(db, bashoId, userId, day).values()];
 
         let points = 0;
         let kimboshi = 0;
@@ -200,56 +202,6 @@ export function calculateScores(bashoId: string): void {
   });
 
   transaction();
-}
-
-function getActiveStableForDay(
-  db: ReturnType<typeof getDb>,
-  bashoId: string,
-  userId: string,
-  day: number
-): number[] {
-  // Start with the original stable selections
-  const stables = db
-    .prepare(
-      "SELECT tier, rikishi_id FROM stables WHERE basho_id = ? AND user_id = ?"
-    )
-    .all(bashoId, userId) as { tier: number; rikishi_id: number }[];
-
-  const activeByTier = new Map<number, number>();
-  for (const s of stables) {
-    activeByTier.set(s.tier, s.rikishi_id);
-  }
-
-  // Get all subs ordered chronologically
-  const allSubs = db
-    .prepare(
-      "SELECT tier, old_rikishi, new_rikishi, day as sub_day FROM substitutions WHERE basho_id = ? AND user_id = ? ORDER BY created_at"
-    )
-    .all(bashoId, userId) as {
-    tier: number;
-    old_rikishi: number;
-    new_rikishi: number;
-    sub_day: number;
-  }[];
-
-  // Use the first sub's old_rikishi as the true original per tier — this corrects
-  // for any historical corruption where stables was mutated on substitution.
-  const seenTiers = new Set<number>();
-  for (const sub of allSubs) {
-    if (!seenTiers.has(sub.tier)) {
-      activeByTier.set(sub.tier, sub.old_rikishi);
-      seenTiers.add(sub.tier);
-    }
-  }
-
-  // Apply substitutions made before the target day
-  for (const sub of allSubs) {
-    if (sub.sub_day < day) {
-      activeByTier.set(sub.tier, sub.new_rikishi);
-    }
-  }
-
-  return Array.from(activeByTier.values());
 }
 
 export async function syncCurrentDay(

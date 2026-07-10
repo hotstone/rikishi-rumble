@@ -1,3 +1,5 @@
+import { jstDateString } from "./time";
+
 const BASHO_NAMES: Record<string, string> = {
   "01": "HATSU BASHO",
   "03": "HARU BASHO",
@@ -27,11 +29,6 @@ function bashoIdToStart(bashoId: string): Date {
   const year = parseInt(bashoId.slice(0, 4));
   const month = parseInt(bashoId.slice(4, 6));
   return secondSunday(year, month);
-}
-
-function jstDateString(d: Date): string {
-  // en-CA formats as YYYY-MM-DD
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(d);
 }
 
 /** Current basho day (1-15) in JST. Returns 0 before start; clamps to 15 after the basho. */

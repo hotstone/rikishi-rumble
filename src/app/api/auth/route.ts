@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validatePin, getConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
+import { userIdFromName } from "@/lib/users";
+import { verifyPassword } from "@/lib/auth";
 import {
-  verifyPassword,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
   makeSessionCookieValue,
-} from "@/lib/auth";
+} from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   const { name, password } = await request.json();
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const userId = name.toLowerCase().replace(/\s+/g, "-");
+  const userId = userIdFromName(name);
   const db = getDb();
   const user = db
     .prepare("SELECT id, name, password_hash, admin FROM users WHERE id = ?")
@@ -75,7 +76,7 @@ export async function GET() {
   const config = getConfig();
   const users = config.users.map((u) => ({
     name: u.name,
-    id: u.name.toLowerCase().replace(/\s+/g, "-"),
+    id: userIdFromName(u.name),
   }));
   return NextResponse.json({ users });
 }
