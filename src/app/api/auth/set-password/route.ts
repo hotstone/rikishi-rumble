@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validatePin } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { userIdFromName } from "@/lib/users";
-import { hashPassword } from "@/lib/auth";
+import { findUser, setUserPassword } from "@/lib/auth";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
@@ -28,11 +28,7 @@ export async function POST(request: NextRequest) {
 
   const userId = userIdFromName(name);
   const db = getDb();
-  const user = db
-    .prepare("SELECT id, name, password_hash, admin FROM users WHERE id = ?")
-    .get(userId) as
-    | { id: string; name: string; password_hash: string | null; admin: number }
-    | undefined;
+  const user = findUser(db, userId);
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 401 });
@@ -51,9 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
   }
 
-  // Hash and store the new password
-  const hash = hashPassword(password);
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, userId);
+  setUserPassword(db, userId, password);
 
   const session = { userId: user.id, name: user.name, admin: !!user.admin };
   const response = NextResponse.json({

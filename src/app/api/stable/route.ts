@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getActiveBashoId } from "@/lib/active-basho";
 import { getSessionFromRequest } from "@/lib/session";
-import { stableLockDate } from "@/lib/basho";
-import { currentStable } from "@/lib/stable";
+import { stableWithDetails, savePicks } from "@/lib/stable";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
@@ -18,19 +17,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ stable: [], basho: null });
   }
 
-  const db = getDb();
-  const activeByTier = currentStable(db, bashoId, userId);
-
-  // Fetch names/ranks for the effective wrestlers
-  const result = [];
-  for (const [tier, rikishiId] of [...activeByTier.entries()].sort(([a], [b]) => a - b)) {
-    const wrestler = db
-      .prepare("SELECT name, rank FROM rikishi_cache WHERE id = ? AND basho_id = ?")
-      .get(rikishiId, bashoId) as { name: string; rank: string } | undefined;
-    result.push({ tier, rikishi_id: rikishiId, name: wrestler?.name ?? "", rank: wrestler?.rank ?? "" });
-  }
-
-  return NextResponse.json({ stable: result, basho: bashoId });
+  const stable = stableWithDetails(getDb(), bashoId, userId);
+  return NextResponse.json({ stable, basho: bashoId });
 }
 
 export async function POST(request: NextRequest) {
@@ -42,92 +30,18 @@ export async function POST(request: NextRequest) {
   const { picks } = await request.json();
 
   if (!picks) {
-    return NextResponse.json(
-      { error: "picks required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "picks required" }, { status: 400 });
   }
 
   const bashoId = getActiveBashoId();
   if (!bashoId) {
     return NextResponse.json({ error: "No active basho" }, { status: 503 });
   }
-  const userId = session.userId;
-  const db = getDb();
 
-  const bashoRow = db
-    .prepare("SELECT start_date FROM basho WHERE id = ?")
-    .get(bashoId) as { start_date: string | null } | undefined;
-
-  if (new Date() >= stableLockDate(bashoId, bashoRow?.start_date || null)) {
-    return NextResponse.json(
-      { error: "Selections are locked — use substitutions to change your stable" },
-      { status: 403 }
-    );
+  const failure = savePicks(getDb(), bashoId, session.userId, picks);
+  if (failure) {
+    return NextResponse.json({ error: failure.error }, { status: failure.status });
   }
-
-  // Validate picks: must have exactly 5 picks, one per tier
-  if (!Array.isArray(picks) || picks.length !== 5) {
-    return NextResponse.json(
-      { error: "Must pick exactly 5 wrestlers (one per tier)" },
-      { status: 400 }
-    );
-  }
-
-  const tiers = new Set<number>();
-  for (const pick of picks) {
-    if (tiers.has(pick.tier)) {
-      return NextResponse.json(
-        { error: `Duplicate tier: ${pick.tier}` },
-        { status: 400 }
-      );
-    }
-    tiers.add(pick.tier);
-
-    // Validate wrestler is in correct tier
-    const wrestler = db
-      .prepare(
-        "SELECT rank, tier FROM rikishi_cache WHERE id = ? AND basho_id = ?"
-      )
-      .get(pick.rikishiId, bashoId) as
-      | { rank: string; tier: number }
-      | undefined;
-
-    if (!wrestler) {
-      return NextResponse.json(
-        { error: `Wrestler ${pick.rikishiId} not found` },
-        { status: 400 }
-      );
-    }
-
-    if (wrestler.tier !== pick.tier) {
-      return NextResponse.json(
-        { error: `Wrestler is tier ${wrestler.tier}, not tier ${pick.tier}` },
-        { status: 400 }
-      );
-    }
-  }
-
-  const upsert = db.prepare(
-    `INSERT INTO stables (basho_id, user_id, tier, rikishi_id, selected_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(basho_id, user_id, tier)
-     DO UPDATE SET rikishi_id = excluded.rikishi_id, selected_at = excluded.selected_at`
-  );
-
-  const transaction = db.transaction(() => {
-    for (const pick of picks) {
-      upsert.run(
-        bashoId,
-        userId,
-        pick.tier,
-        pick.rikishiId,
-        new Date().toISOString()
-      );
-    }
-  });
-
-  transaction();
 
   return NextResponse.json({ success: true });
 }

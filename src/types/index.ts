@@ -3,6 +3,7 @@ export interface UserConfig {
   name: string;
   pin?: string;
   admin: boolean;
+  initials?: string;
 }
 
 // Session type

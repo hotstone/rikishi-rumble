@@ -127,7 +127,19 @@ logic only compensates for frozen historical data.
 
 ---
 
-## Phase 3 — Slim the routes
+## Phase 3 — Slim the routes ✅ DONE 2026-07-11 (pulled forward pre-Nagoya)
+
+**Outcome:** zero `db.prepare` under `src/app/api/`. New libs: `scoring.ts`
+(calculateScores + set-based getLeaderboard — snapshot-verified byte-identical output),
+`bouts.ts`, `wrestlers.ts`, `champions.ts`; `stable.ts` gained savePicks/stableWithDetails
++ a bulk loader; `substitution.ts` gained applySubstitution/getSubstitutions; `auth.ts`
+gained user-row helpers. Substitution day is now derived server-side via `subWindowDay`
+(window-index — NOT calendar day, so overnight windows keep the right day; better than
+the plan's `currentBashoDay` suggestion). Cross-basho fallback join confirmed dead
+against prod backup and deleted. INITIALS → config.json (`"initials"`), server sends
+`myInitials` in the bouts payload; `windowDay` added to substitution GET. All other
+endpoints byte-identical (only additive fields differ). NOTE: run the "Sync config.json
+to volume" workflow after deploying so prod picks up the initials.
 
 Routes become: parse input → session check → one lib call → JSON. Raw SQL moves to lib.
 

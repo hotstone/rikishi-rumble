@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/session";
 import { getDb } from "@/lib/db";
 import { userIdFromName } from "@/lib/users";
+import { findUser, clearUserPassword } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const session = getSessionFromRequest(request);
@@ -23,14 +24,13 @@ export async function POST(request: NextRequest) {
 
   const db = getDb();
   const targetId = userIdFromName(targetUser);
-  const user = db.prepare("SELECT id FROM users WHERE id = ?").get(targetId);
 
-  if (!user) {
+  if (!findUser(db, targetId)) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   // Clear password_hash so the user must re-authenticate with their PIN and set a new password
-  db.prepare("UPDATE users SET password_hash = NULL WHERE id = ?").run(targetId);
+  clearUserPassword(db, targetId);
 
   return NextResponse.json({
     success: true,

@@ -102,6 +102,7 @@ export function SubstitutionPanel({
   } | null>(null);
   const [message, setMessage] = useState("");
   const [currentDay, setCurrentDay] = useState(1);
+  const [windowDay, setWindowDay] = useState<number | null>(null);
   const [subWindows, setSubWindows] = useState<SubWindow[]>([]);
 
   const loadData = useCallback(async () => {
@@ -120,6 +121,7 @@ export function SubstitutionPanel({
     setStable(stableRes.stable);
     setWrestlers(wrestlerRes.wrestlers);
     setSubstitutions(subRes.substitutions);
+    setWindowDay(subRes.windowDay ?? null);
     setCurrentDay(day);
     setBoutsByDay(boutsRes.boutsByDay || {});
     setSubWindows(
@@ -134,7 +136,9 @@ export function SubstitutionPanel({
   useEffect(() => { loadData(); }, [loadData]);
 
   const { timeLeft, status, isOpen: windowOpen } = useSubWindowCountdown(subWindows);
-  const todaySwapCount = substitutions.filter((s) => s.day === currentDay).length;
+  // The server derives the sub day from the open window; fall back to the
+  // latest results day when no window is open (display only).
+  const todaySwapCount = substitutions.filter((s) => s.day === (windowDay ?? currentDay)).length;
   const swapsRemaining = todaySwapCount < 2;
 
   const nextDay = currentDay + 1;
@@ -156,11 +160,7 @@ export function SubstitutionPanel({
     const res = await fetch("/api/substitution", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tier,
-        newRikishiId,
-        day: currentDay,
-      }),
+      body: JSON.stringify({ tier, newRikishiId }),
     });
 
     if (res.ok) {

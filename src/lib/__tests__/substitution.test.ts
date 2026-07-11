@@ -4,6 +4,7 @@ import {
   finalSubWindowClose,
   isSubstitutionWindowOpen,
   subWindowIntervals,
+  subWindowDay,
 } from "@/lib/substitution";
 
 // Nagoya 2026: starts 2026-07-12T00:00:00Z (09:00 JST on day 1).
@@ -39,6 +40,33 @@ describe("subWindowIntervals", () => {
       const gap = windows[i].opensAt.getTime() - windows[i - 1].closesAt.getTime();
       expect(gap).toBe(2 * 3600 * 1000);
     }
+  });
+});
+
+describe("subWindowDay", () => {
+  it("is null with no start date or outside any window", () => {
+    expect(subWindowDay(null, new Date("2026-07-13T10:00:00Z"))).toBe(null);
+    expect(subWindowDay(start, new Date("2026-07-12T08:59:00Z"))).toBe(null); // before first open
+    expect(subWindowDay(start, new Date("2026-07-13T07:30:00Z"))).toBe(null); // blackout
+    expect(subWindowDay(start, new Date("2026-07-26T07:00:00Z"))).toBe(null); // after final close
+  });
+
+  it("maps the evening window to the day whose results just finished", () => {
+    // 18:05 JST on day 1
+    expect(subWindowDay(start, new Date("2026-07-12T09:05:00Z"))).toBe(1);
+    // 18:05 JST on day 3
+    expect(subWindowDay(start, new Date("2026-07-14T09:05:00Z"))).toBe(3);
+  });
+
+  it("keeps the same sub day overnight past JST midnight", () => {
+    // 02:00 JST on calendar day 2 is still day 1's window
+    expect(subWindowDay(start, new Date("2026-07-12T17:00:00Z"))).toBe(1);
+    // 15:59 JST on day 2, moments before the blackout — still day 1's window
+    expect(subWindowDay(start, new Date("2026-07-13T06:59:00Z"))).toBe(1);
+  });
+
+  it("last window is day 14 (subs effective day 15)", () => {
+    expect(subWindowDay(start, new Date("2026-07-26T06:59:00Z"))).toBe(14);
   });
 });
 

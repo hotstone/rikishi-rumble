@@ -4,7 +4,8 @@
     {
       "name": "Matt",
       "pin": "1234",
-      "admin": true
+      "admin": true,
+      "initials": "MH"
     },
     {
       "name": "Sarah",
@@ -14,7 +15,8 @@
     {
       "name": "Marc",
       "pin": "1111",
-      "admin": true
+      "admin": true,
+      "initials": "MC"
     },
     {
       "name": "Chai",
@@ -29,7 +31,8 @@
     {
       "name": "Mac",
       "pin": "4444",
-      "admin": false
+      "admin": false,
+      "initials": "MR"
     }
   ]
 }

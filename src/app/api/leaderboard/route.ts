@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
 import { getActiveBashoId } from "@/lib/active-basho";
-import { stableForDay } from "@/lib/stable";
+import { getLeaderboard } from "@/lib/scoring";
 
 export async function GET(request: NextRequest) {
   const bashoId =
@@ -17,119 +16,5 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const db = getDb();
-
-  const latestBoutDay = db
-    .prepare(
-      "SELECT MAX(day) as day FROM bout_results WHERE basho_id = ? AND winner_id IS NOT NULL"
-    )
-    .get(bashoId) as { day: number | null };
-
-  const currentDay = latestBoutDay?.day || 0;
-
-  // activeDay: a day with partial results (in progress), fallback to currentDay
-  const activeDayRow = db
-    .prepare(
-      `SELECT day FROM (
-         SELECT day,
-           SUM(CASE WHEN winner_id IS NOT NULL THEN 1 ELSE 0 END) as decided,
-           COUNT(*) as total
-         FROM bout_results WHERE basho_id = ?
-         GROUP BY day
-       ) WHERE decided > 0 AND decided < total
-       ORDER BY day DESC LIMIT 1`
-    )
-    .get(bashoId) as { day: number } | undefined;
-
-  const activeDay = activeDayRow?.day ?? currentDay;
-
-  // Days that have at least one decided bout
-  const daysWithResults = db
-    .prepare(
-      "SELECT DISTINCT day FROM bout_results WHERE basho_id = ? AND winner_id IS NOT NULL ORDER BY day"
-    )
-    .all(bashoId) as { day: number }[];
-
-  // Get all users with their total scores
-  const users = db
-    .prepare("SELECT id, name FROM users")
-    .all() as { id: string; name: string }[];
-
-  const leaderboard = users.map((user) => {
-    // Total points
-    const totalRow = db
-      .prepare(
-        "SELECT COALESCE(SUM(points), 0) as total, COALESCE(SUM(kimboshi), 0) as kb FROM daily_scores WHERE basho_id = ? AND user_id = ?"
-      )
-      .get(bashoId, user.id) as { total: number; kb: number };
-
-    // Today's points and kimboshi
-    const todayRow = db
-      .prepare(
-        "SELECT COALESCE(points, 0) as points, COALESCE(kimboshi, 0) as kimboshi FROM daily_scores WHERE basho_id = ? AND user_id = ? AND day = ?"
-      )
-      .get(bashoId, user.id, currentDay) as { points: number; kimboshi: number } | undefined;
-
-    // Build dailyWrestlers: for each day with results, the active stable + wins that day
-    const dailyWrestlers: Record<number, { tier: number; rikishi_id: number; name: string; rank: string; points: number; kimboshi: number }[]> = {};
-
-    for (const { day } of daysWithResults) {
-      const tierMap = stableForDay(db, bashoId, user.id, day);
-      dailyWrestlers[day] = [...tierMap.entries()]
-        .sort(([a], [b]) => a - b)
-        .map(([tier, rikishi_id]) => {
-          const r = db
-            .prepare("SELECT name, rank FROM rikishi_cache WHERE id = ? AND basho_id = ?")
-            .get(rikishi_id, bashoId) as { name: string; rank: string } | undefined;
-          const boutStats = db
-            .prepare("SELECT COUNT(*) as w, COALESCE(SUM(is_kimboshi), 0) as kb FROM bout_results WHERE basho_id = ? AND winner_id = ? AND day = ?")
-            .get(bashoId, rikishi_id, day) as { w: number; kb: number };
-          return { tier, rikishi_id, name: r?.name ?? "", rank: r?.rank ?? "", points: boutStats.w, kimboshi: boutStats.kb };
-        });
-    }
-
-    // Daily scores for power-up bar
-    const dailyScores = db
-      .prepare(
-        "SELECT day, points, kimboshi FROM daily_scores WHERE basho_id = ? AND user_id = ? ORDER BY day"
-      )
-      .all(bashoId, user.id) as { day: number; points: number; kimboshi: number }[];
-
-    const dailyPoints: Record<number, number> = {};
-    const dailyKimboshi: Record<number, number> = {};
-    for (const ds of dailyScores) {
-      dailyPoints[ds.day] = ds.points;
-      dailyKimboshi[ds.day] = ds.kimboshi;
-    }
-
-    return {
-      user_id: user.id,
-      user_name: user.name,
-      total_points: totalRow.total,
-      today_points: todayRow?.points || 0,
-      today_kimboshi: todayRow?.kimboshi || 0,
-      kimboshi_total: totalRow.kb,
-      dailyWrestlers,
-      dailyPoints,
-      dailyKimboshi,
-    };
-  });
-
-  // Sort by total points descending, then kimboshi as tiebreaker
-  leaderboard.sort((a, b) => b.total_points - a.total_points || b.kimboshi_total - a.kimboshi_total);
-
-  // Check for pending sync
-  const pendingSync = db
-    .prepare(
-      "SELECT COUNT(*) as count FROM sync_log WHERE basho_id = ? AND status = 'pending'"
-    )
-    .get(bashoId) as { count: number };
-
-  return NextResponse.json({
-    leaderboard,
-    currentDay,
-    activeDay,
-    basho: bashoId,
-    hasPendingResults: pendingSync.count > 0,
-  });
+  return NextResponse.json(getLeaderboard(bashoId));
 }

@@ -98,7 +98,7 @@ let scores: Record<string, Record<number, { points: number; kimboshi: number }>>
 
 beforeAll(async () => {
   const { getDb } = await import("@/lib/db");
-  const { calculateScores } = await import("@/lib/sync");
+  const { calculateScores } = await import("@/lib/scoring");
 
   const db = getDb();
   db.prepare("INSERT INTO basho (id, start_date, status) VALUES (?, ?, 'active')").run(
@@ -149,7 +149,7 @@ describe("calculateScores", () => {
 
   it("is a full recalculation: re-running produces identical rows, no duplicates", async () => {
     const { getDb } = await import("@/lib/db");
-    const { calculateScores } = await import("@/lib/sync");
+    const { calculateScores } = await import("@/lib/scoring");
     calculateScores(BASHO);
     const count = getDb()
       .prepare("SELECT COUNT(*) as c FROM daily_scores WHERE basho_id = ?")

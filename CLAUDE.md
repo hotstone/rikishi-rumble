@@ -19,17 +19,20 @@ Port 3000 is occupied on this machine — always use 3001.
 - `src/lib/active-basho.ts` — active-basho detection (server-only, uses DB)
 - `src/lib/basho.ts` — basho calendar math (pure, client-safe)
 - `src/lib/time.ts` — JST date/hour helpers (the ONLY place timezone math lives)
-- `src/lib/stable.ts` — stable reconstruction (`stableForDay`, `currentStable`) — the single source of truth for "whose stable was what on day N"
+- `src/lib/stable.ts` — stable reconstruction (`stableForDay`, `currentStable`) — the single source of truth for "whose stable was what on day N" — plus `savePicks` validation
+- `src/lib/scoring.ts` — `calculateScores` + `getLeaderboard` (set-based, no N+1)
+- `src/lib/bouts.ts` — bouts-by-day payload, owner initials (config `initials` field, first-letter fallback)
+- `src/lib/wrestlers.ts`, `src/lib/champions.ts` — remaining read models
 - `src/lib/users.ts` — `userIdFromName` slug (pure, client-safe)
 - `src/lib/session.ts` — session cookie helpers (no bcrypt; safe for middleware)
-- `src/lib/auth.ts` — bcrypt hash/verify only
+- `src/lib/auth.ts` — bcrypt hash/verify + users-table row helpers
 - `src/lib/clash.ts` — stablemate clash detection (pure, client-safe)
 - `src/lib/sumo-api.ts` — API client for sumo-api.com (banzuke, torikumi) + rank parsing
-- `src/lib/sync.ts` — data sync and score calculation (scores recalculated fully on every sync)
-- `src/lib/substitution.ts` — substitution window logic (18:00–16:00 JST nightly windows)
+- `src/lib/sync.ts` — data ingest from sumo-api (scores recalculated fully after every sync)
+- `src/lib/substitution.ts` — window logic + substitution validation (`subWindowDay` derives the day server-side)
 - `src/lib/cron.ts` — scheduled sync jobs (JST-timed)
 - `src/lib/__tests__/` — vitest suite; `npm test` (CI runs it before deploy)
-- `src/app/api/` — API routes: auth, wrestlers, stable, leaderboard, substitution, sync, basho
+- `src/app/api/` — API routes: thin handlers only (parse → session check → one lib call → JSON); no SQL in routes
 - `src/components/` — UserAuth, Leaderboard, StableSelector, SubstitutionPanel, AdminPanel, BashoPage
 
 ## Refactor plan

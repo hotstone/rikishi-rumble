@@ -22,21 +22,12 @@ interface BashoData {
   currentDay: number;
   syncedDays: number[];
   boutsByDay: Record<number, Bout[]>;
-}
-
-const INITIALS: Record<string, string> = {
-  Matt: "MH",
-  Marc: "MC",
-  Mac: "MR",
-};
-
-function userInitials(name: string): string {
-  return INITIALS[name] || name.charAt(0).toUpperCase();
+  myInitials?: string | null;
 }
 
 export function BashoPage({ userName }: { userName?: string }) {
-  const myInitials = userName ? userInitials(userName) : null;
   const [data, setData] = useState<BashoData | null>(null);
+  const myInitials = data?.myInitials ?? null;
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
   const initialLoad = useRef(true);
 

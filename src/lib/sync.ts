@@ -1,8 +1,6 @@
 import { getDb } from "./db";
-import { getConfig } from "./config";
 import { currentBashoDay } from "./basho";
-import { stableForDay } from "./stable";
-import { userIdFromName } from "./users";
+import { calculateScores } from "./scoring";
 import {
   fetchBanzuke,
   fetchTorikumi,
@@ -148,60 +146,6 @@ export async function syncDay(
   );
 
   return { bouts: matches.length, pending: false, inProgress };
-}
-
-export function calculateScores(bashoId: string): void {
-  const db = getDb();
-  const config = getConfig();
-
-  const deleteScores = db.prepare(
-    "DELETE FROM daily_scores WHERE basho_id = ?"
-  );
-  const insertScore = db.prepare(
-    "INSERT INTO daily_scores (basho_id, user_id, day, points, kimboshi) VALUES (?, ?, ?, ?, ?)"
-  );
-
-  // Get all days that have bouts
-  const days = db
-    .prepare(
-      "SELECT DISTINCT day FROM bout_results WHERE basho_id = ? ORDER BY day"
-    )
-    .all(bashoId) as { day: number }[];
-
-  const transaction = db.transaction(() => {
-    deleteScores.run(bashoId);
-
-    for (const user of config.users) {
-      const userId = userIdFromName(user.name);
-
-      for (const { day } of days) {
-        // Get user's active stable for this day (accounting for substitutions)
-        const activeWrestlers = [...stableForDay(db, bashoId, userId, day).values()];
-
-        let points = 0;
-        let kimboshi = 0;
-
-        for (const wrestlerId of activeWrestlers) {
-          // Count wins
-          const wins = db
-            .prepare(
-              "SELECT COUNT(*) as count, SUM(is_kimboshi) as kb FROM bout_results WHERE basho_id = ? AND day = ? AND winner_id = ?"
-            )
-            .get(bashoId, day, wrestlerId) as {
-            count: number;
-            kb: number | null;
-          };
-
-          points += wins.count;
-          kimboshi += wins.kb || 0;
-        }
-
-        insertScore.run(bashoId, userId, day, points, kimboshi);
-      }
-    }
-  });
-
-  transaction();
 }
 
 export async function syncCurrentDay(
