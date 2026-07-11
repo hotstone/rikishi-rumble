@@ -3,34 +3,34 @@
   "users": [
     {
       "name": "Matt",
-      "pin": "1234",
+      "pin": "6666",
       "admin": true,
       "initials": "MH"
     },
     {
       "name": "Sarah",
-      "pin": "5678",
+      "pin": "6666",
       "admin": false
     },
     {
       "name": "Marc",
-      "pin": "1111",
+      "pin": "7457",
       "admin": true,
       "initials": "MC"
     },
     {
       "name": "Chai",
-      "pin": "2222",
+      "pin": "6666",
       "admin": true
     },
     {
       "name": "Alyssa",
-      "pin": "3333",
+      "pin": "6666",
       "admin": false
     },
     {
       "name": "Mac",
-      "pin": "4444",
+      "pin": "6666",
       "admin": false,
       "initials": "MR"
     }
