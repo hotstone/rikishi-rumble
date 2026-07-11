@@ -33,6 +33,18 @@
       "pin": "6666",
       "admin": false,
       "initials": "MR"
+    },
+    {
+      "name": "LJ",
+      "pin": "6666",
+      "admin": false,
+      "initials": "LJ"
+    },
+    {
+      "name": "Woz",
+      "pin": "6666",
+      "admin": false,
+      "initials": "WZ"
     }
   ]
 }
