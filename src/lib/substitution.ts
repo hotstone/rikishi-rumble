@@ -54,6 +54,16 @@ export function isSubstitutionWindowOpen(
   return subWindowDay(bashoStartDate, now) !== null;
 }
 
+/**
+ * When day N's lineups become final: 16:00 JST on day N. For day 1 that is
+ * the stable lock; for later days it is the close of the previous evening's
+ * substitution window. Bouts start right after, so picks are public while
+ * the day's bouts are fought.
+ */
+export function dayLineupLockedAt(bashoStartDate: Date, day: number): Date {
+  return new Date(bashoStartDate.getTime() + ((day - 1) * 24 + 7) * 3600 * 1000);
+}
+
 function bashoStartDate(db: Db, bashoId: string): Date | null {
   const row = db
     .prepare("SELECT start_date FROM basho WHERE id = ?")

@@ -61,30 +61,45 @@ function dayBouts(payload: Payload, day: number) {
   return payload.boutsByDay[day];
 }
 
-describe("getBoutsPayload pick visibility", () => {
-  it("shows all owners for a day once any bout has resolved", () => {
-    const payload = getBoutsPayload(BASHO, "alice");
-    const [bout] = dayBouts(payload, 1);
-    expect(bout.east_owners).toEqual(["A"]);
-    expect(bout.west_owners).toEqual(["B"]);
-  });
+// Basho starts 2026-01-11T00:00:00Z (09:00 JST). Day N's lineups become
+// public at 16:00 JST on day N = 07:00 UTC on Jan (10 + N).
+const beforeDay1Lock = new Date("2026-01-11T06:59:00Z");
+const afterDay1Lock = new Date("2026-01-11T08:00:00Z");
+const afterDay2Lock = new Date("2026-01-12T08:00:00Z");
 
-  it("hides other users' picks for days with no decided bouts", () => {
-    const payload = getBoutsPayload(BASHO, "alice");
-    const [bout] = dayBouts(payload, 2);
+describe("getBoutsPayload pick visibility", () => {
+  it("hides everyone else's picks before the day's lineups lock", () => {
+    const payload = getBoutsPayload(BASHO, "alice", beforeDay1Lock);
+    const [bout] = dayBouts(payload, 1);
     expect(bout.east_owners).toEqual(["A"]); // Alice's own pick stays visible
     expect(bout.west_owners).toEqual([]); // Bob's pick hidden from Alice
   });
 
-  it("hides all picks on undecided days from anonymous requests", () => {
-    const payload = getBoutsPayload(BASHO, null);
-    const [bout] = dayBouts(payload, 2);
+  it("reveals a day's picks at 16:00 JST that day, when its lineups are final", () => {
+    const payload = getBoutsPayload(BASHO, "alice", afterDay1Lock);
+    const day1 = dayBouts(payload, 1)[0];
+    expect(day1.east_owners).toEqual(["A"]);
+    expect(day1.west_owners).toEqual(["B"]);
+    // Day 2 lineups can still change via evening subs — still hidden
+    const day2 = dayBouts(payload, 2)[0];
+    expect(day2.east_owners).toEqual(["A"]);
+    expect(day2.west_owners).toEqual([]);
+  });
+
+  it("reveals each day independently as its lock passes", () => {
+    const payload = getBoutsPayload(BASHO, "alice", afterDay2Lock);
+    expect(dayBouts(payload, 2)[0].west_owners).toEqual(["B"]);
+  });
+
+  it("hides all picks on unlocked days from anonymous requests", () => {
+    const payload = getBoutsPayload(BASHO, null, beforeDay1Lock);
+    const [bout] = dayBouts(payload, 1);
     expect(bout.east_owners).toEqual([]);
     expect(bout.west_owners).toEqual([]);
     expect(payload.myInitials).toBe(null);
   });
 
   it("returns the requesting user's initials", () => {
-    expect(getBoutsPayload(BASHO, "alice").myInitials).toBe("A");
+    expect(getBoutsPayload(BASHO, "alice", afterDay1Lock).myInitials).toBe("A");
   });
 });
