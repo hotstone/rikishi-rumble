@@ -2,7 +2,6 @@ import { getDb } from "./db";
 import { getConfig } from "./config";
 import { userIdFromName } from "./users";
 import { currentBashoDay } from "./basho";
-import { isSubstitutionWindowOpen } from "./substitution";
 import { loadAllStableStates, stableForDayFrom } from "./stable";
 
 /** Display initials per user ID, from config with first-letter fallback. */
@@ -74,31 +73,27 @@ export function getBoutsPayload(bashoId: string, requestingUserId: string | null
     rikishiOwners[day] = dayOwners;
   }
 
-  // During substitution window, hide other users' owners for days that haven't
-  // started yet (no bouts decided). Once any bout on a day has resolved, picks
-  // become visible to everyone.
-  const bashoRow = db
-    .prepare("SELECT start_date FROM basho WHERE id = ?")
-    .get(bashoId) as { start_date: string | null } | undefined;
-  const windowOpen = isSubstitutionWindowOpen(
-    bashoRow?.start_date ? new Date(bashoRow.start_date) : null
-  );
-  if (windowOpen) {
-    const anyDecidedByDay = new Map<number, boolean>();
-    for (const bout of bouts) {
-      if (bout.winner_id) anyDecidedByDay.set(bout.day, true);
-    }
-    for (const day of Object.keys(rikishiOwners).map(Number)) {
-      if (!anyDecidedByDay.get(day)) {
-        for (const rikishiId of Object.keys(rikishiOwners[day]).map(Number)) {
-          rikishiOwners[day][rikishiId] = rikishiOwners[day][rikishiId].filter((initials) => {
-            if (!requestingUserId) return false;
-            return initials === userInitials[requestingUserId];
-          });
-        }
+  // Hide other users' owners for days that haven't started yet (no bouts
+  // decided) so picks and pending substitutions stay private. Once any bout
+  // on a day has resolved, that day's picks become visible to everyone.
+  const anyDecidedByDay = new Map<number, boolean>();
+  for (const bout of bouts) {
+    if (bout.winner_id) anyDecidedByDay.set(bout.day, true);
+  }
+  for (const day of Object.keys(rikishiOwners).map(Number)) {
+    if (!anyDecidedByDay.get(day)) {
+      for (const rikishiId of Object.keys(rikishiOwners[day]).map(Number)) {
+        rikishiOwners[day][rikishiId] = rikishiOwners[day][rikishiId].filter((initials) => {
+          if (!requestingUserId) return false;
+          return initials === userInitials[requestingUserId];
+        });
       }
     }
   }
+
+  const bashoRow = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
 
   const boutsByDay: Record<
     number,
