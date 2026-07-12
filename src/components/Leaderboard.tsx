@@ -31,6 +31,7 @@ interface LeaderboardData {
   activeDay: number;
   basho: string | null;
   hasPendingResults: boolean;
+  hasUndecidedBouts: boolean;
 }
 
 export function Leaderboard() {
@@ -43,6 +44,18 @@ export function Leaderboard() {
       .then((r) => r.json())
       .then(setData);
   }, []);
+
+  // Poll every 60 seconds while the basho still has undecided bouts, so
+  // scores update live without a refresh
+  useEffect(() => {
+    if (!data?.hasUndecidedBouts) return;
+    const interval = setInterval(() => {
+      fetch("/api/leaderboard")
+        .then((r) => r.json())
+        .then(setData);
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [data]);
 
   if (!data) {
     return <div className="text-center font-pixel text-retro-yellow text-xs animate-pulse">LOADING...</div>;

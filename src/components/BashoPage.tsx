@@ -52,14 +52,12 @@ export function BashoPage({ userName }: { userName?: string }) {
     fetchData();
   }, [fetchData]);
 
-  // Poll every 30 seconds if the current day is partially decided
+  // Poll every 30 seconds while the current day has bouts still to be decided
+  // (including before the first result lands, so the page comes alive on its own)
   useEffect(() => {
     if (!data || data.currentDay === 0) return;
     const bouts = data.boutsByDay[data.currentDay] || [];
-    const decidedCount = bouts.filter((b) => b.winner_id).length;
-    const inProgress = decidedCount > 0 && decidedCount < bouts.length;
-
-    if (!inProgress) return;
+    if (bouts.length === 0 || bouts.every((b) => b.winner_id)) return;
 
     const interval = setInterval(fetchData, 30 * 1000);
     return () => clearInterval(interval);

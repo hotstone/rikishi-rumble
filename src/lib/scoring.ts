@@ -187,11 +187,18 @@ export function getLeaderboard(bashoId: string) {
     .prepare("SELECT COUNT(*) as count FROM sync_log WHERE basho_id = ? AND status = 'pending'")
     .get(bashoId) as { count: number };
 
+  const undecided = db
+    .prepare(
+      "SELECT COUNT(*) as count FROM bout_results WHERE basho_id = ? AND winner_id IS NULL"
+    )
+    .get(bashoId) as { count: number };
+
   return {
     leaderboard,
     currentDay,
     activeDay,
     basho: bashoId,
     hasPendingResults: pendingSync.count > 0,
+    hasUndecidedBouts: undecided.count > 0,
   };
 }

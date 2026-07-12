@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
       activeDay: 0,
       basho: null,
       hasPendingResults: false,
+      hasUndecidedBouts: false,
     });
   }
 
