@@ -16,6 +16,16 @@ Changes that touch scoring, stables, or auth must not land during a live basho.
 
 Deploys go via push to main (CI runs `fly deploy`). Never `fly deploy` locally.
 
+**Status update 2026-07-16:** the `fb-refactor-phase4` working branch (phases 1–3 plus
+feature work: pre-basho selection window, pick-visibility rules, live polling, win/loss
+records) was merged into `main` mid-Nagoya and the branch deleted. It had already been
+running in production since Jul 12 via manual deploys, so the merge changed nothing in
+prod — it re-aligned `main` with reality after two main-based CI deploys on Jul 16
+briefly rolled prod back to pre-refactor code. Lesson recorded: CI deploys whatever is
+on `main`; never push to main while prod is running a manually-deployed branch.
+Phase 4 (identity layer, below) has NOT started and stays scheduled for the
+Jul 27 – Sep 12 gap.
+
 ---
 
 ## Phase 0 — Test safety net (safe during basho) ✅ DONE 2026-07-08
