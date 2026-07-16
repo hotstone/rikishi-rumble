@@ -48,6 +48,26 @@ export function startCronJobs() {
     { timezone: "Asia/Tokyo" }
   );
 
+  // 6:00, 6:05, 6:10 PM JST
+  cron.schedule(
+    "0,5,10 18 * * *",
+    async () => {
+      console.log("[cron:6pm] Running scheduled sync...");
+      try {
+        const bashoId = getActiveBashoId();
+        if (!bashoId) {
+          console.log("[cron:6pm] Skipped: no active basho");
+          return;
+        }
+        const result = await syncAllDays(bashoId);
+        console.log(`[cron:6pm] Sync complete: ${result.synced} days synced, ${result.pending} pending`);
+      } catch (error) {
+        console.error("[cron:6pm] Sync failed:", error);
+      }
+    },
+    { timezone: "Asia/Tokyo" }
+  );
+
   // Every 2 minutes between 4:00 PM and 6:00 PM JST — syncs only the current day
   const intervalHandler = async () => {
     console.log("[cron:interval] Running current-day sync...");
@@ -71,7 +91,6 @@ export function startCronJobs() {
   };
   const tokyo = { timezone: "Asia/Tokyo" };
   cron.schedule("*/2 16-17 * * *", intervalHandler, tokyo);
-  cron.schedule("0 18 * * *", intervalHandler, tokyo);
 
-  console.log("[cron] Scheduled sync jobs: 7:30 PM JST, 8:00 PM JST, and every 2 min 4-6 PM JST");
+  console.log("[cron] Scheduled sync jobs: 6:00/6:05/6:10 PM, 7:30 PM, 8:00 PM JST, and every 2 min 4-6 PM JST");
 }

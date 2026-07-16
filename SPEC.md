@@ -104,7 +104,7 @@ All tournament data is sourced from the public API at `https://www.sumo-api.com/
 
 ### Data Sync Strategy
 
-- **Automated polling:** Two full-basho sync cron jobs run daily at **7:30 PM JST** and **8:00 PM JST** to fetch the day's match results and update scores. The dual schedule provides redundancy -- the first run catches most results, the second picks up any stragglers or late updates. A third cron fires **every 2 minutes between 4:00 PM and 6:00 PM JST** (the live makuuchi window) and only syncs the current basho day for fast in-progress updates.
+- **Automated polling:** Full-basho sync cron jobs run daily at **6:00, 6:05 and 6:10 PM JST** (immediately after the live makuuchi window closes, catching the day's final results and the next day's torikumi) and at **7:30 PM JST** and **8:00 PM JST** for redundancy -- the later runs pick up any stragglers or late updates. Another cron fires **every 2 minutes between 4:00 PM and 6:00 PM JST** (the live makuuchi window) and only syncs the current basho day for fast in-progress updates.
 - **Current basho day:** computed by diffing the JST calendar date of `now` against the JST calendar date of the basho's `start_date` (+1, clamped to 1-15). Day boundaries flip at JST midnight, not UTC midnight, so the day-of-basho stays aligned with the schedule in Japan.
 - **Active basho determination:** `getActiveBasho()` derives the active basho on every call. It takes the most recent calendar basho start ≤ now (second Sunday of the latest passed odd month), looks up its `start_date` in the `basho` table if present (otherwise uses the calendar date), then: returns `null` if `day < 1` (basho hasn't started); returns the basho if `day` is 1-14; on day 15, returns the basho only if at least one bout still has `winner_id IS NULL` (or no bouts have been synced yet), and returns `null` otherwise. No `is_active` flag is stored — completeness of day 15 in `bout_results` is the single source of truth for end-of-basho.
 - **Manual override:** An admin can trigger a manual data sync at any time via a button in the UI. This is useful if the API was temporarily down during the scheduled poll or if results need to be refreshed.
@@ -232,7 +232,7 @@ Components are ordered by dependency chain. Each step builds on the previous one
 4. **User config & PIN auth:** Config file parser, user dropdown + PIN validation API route.
 5. **Stable selection:** UI for picking wrestlers per tier, API routes for saving/loading stables, tier validation.
 6. **Score calculation engine:** Match result processing, kimboshi detection, daily score aggregation.
-7. **Automated data sync:** node-cron scheduled polling (7:30 PM + 8:00 PM JST full sync, plus every 2 min 4-6 PM JST current-day sync), manual sync admin endpoint, retry logic.
+7. **Automated data sync:** node-cron scheduled polling (6:00/6:05/6:10 PM + 7:30 PM + 8:00 PM JST full sync, plus every 2 min 4-6 PM JST current-day sync), manual sync admin endpoint, retry logic.
 8. **Leaderboard:** Ranked scoreboard page, today's points, total points, wrestler names per user.
 9. **Substitution system:** Substitution UI, time window enforcement (JST), 2-per-day limit, same-tier validation.
 10. **Visual theme & polish:** Kunio-kun pixel art styling, retro fonts, color palette, animations, responsive design.
@@ -247,7 +247,7 @@ Components are ordered by dependency chain. Each step builds on the previous one
 | 4 | Timezone | JST (Asia/Tokyo) for all sumo-event timing | Substitution window, cron schedule, and day-of-basho boundaries are anchored to Japan so they stay aligned with the schedule in Tokyo and don't drift twice a year with Australian DST |
 | 5 | Kimboshi definition | Strict: Maegashira beats Yokozuna, excluding Fusen wins. Worth no points, used only as tiebreaker | Traditional definition; Fusen excluded because the Yokozuna didn't compete. Kimboshi rewards risk-taking via the tiebreaker rather than direct scoring |
 | 6 | Competition scope | Single basho at a time | Clean reset each tournament; no seasonal tracking |
-| 7 | Data sync strategy | Hybrid: auto-poll + manual override | Daily cron at 7:30 PM + 8:00 PM JST (full sync) and every 2 min 4-6 PM JST (current-day only), plus admin button for ad-hoc syncs |
+| 7 | Data sync strategy | Hybrid: auto-poll + manual override | Daily cron at 6:00/6:05/6:10 PM + 7:30 PM + 8:00 PM JST (full sync) and every 2 min 4-6 PM JST (current-day only), plus admin button for ad-hoc syncs |
 | 8 | Kyujo handling | Treat as normal losses | No special handling; user can use substitutions strategically |
 | 9 | Tech stack | Next.js + TypeScript + SQLite | Single project, lightweight, perfect for self-hosted small group app |
 | 10 | User guard | Simple 4-digit PIN per user | Prevents accidental changes; not meant as real security |
