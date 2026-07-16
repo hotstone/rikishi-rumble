@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { detectClashes, type ClashBout, type ClashInfo } from "@/lib/clash";
-import WinLossRecord from "./WinLossRecord";
 
 type WindowStatus = "before-basho" | "open" | "blackout" | "after-basho";
 
@@ -65,8 +64,6 @@ interface StableEntry {
   rikishi_id: number;
   name: string;
   rank: string;
-  wins: number;
-  losses: number;
 }
 
 interface Wrestler {
@@ -74,8 +71,6 @@ interface Wrestler {
   name: string;
   rank: string;
   tier: number;
-  wins: number;
-  losses: number;
 }
 
 interface SubstitutionRecord {
@@ -250,34 +245,30 @@ export function SubstitutionPanel({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <WinLossRecord wins={entry.wins} losses={entry.losses} />
+              {windowOpen && swappingTier !== entry.tier && (
+                <button
+                  onClick={() => {
+                    setSwappingTier(entry.tier);
+                    setPendingSwap(null);
+                  }}
+                  disabled={!swapsRemaining}
+                  className="retro-btn text-xs px-2 py-1"
+                >
+                  SWAP
+                </button>
+              )}
 
-                {windowOpen && swappingTier !== entry.tier && (
-                  <button
-                    onClick={() => {
-                      setSwappingTier(entry.tier);
-                      setPendingSwap(null);
-                    }}
-                    disabled={!swapsRemaining}
-                    className="retro-btn text-xs px-2 py-1"
-                  >
-                    SWAP
-                  </button>
-                )}
-
-                {swappingTier === entry.tier && (
-                  <button
-                    onClick={() => {
-                      setSwappingTier(null);
-                      setPendingSwap(null);
-                    }}
-                    className="retro-btn-danger text-xs px-2 py-1"
-                  >
-                    CANCEL
-                  </button>
-                )}
-              </div>
+              {swappingTier === entry.tier && (
+                <button
+                  onClick={() => {
+                    setSwappingTier(null);
+                    setPendingSwap(null);
+                  }}
+                  className="retro-btn-danger text-xs px-2 py-1"
+                >
+                  CANCEL
+                </button>
+              )}
             </div>
           ))}
 
@@ -309,9 +300,8 @@ export function SubstitutionPanel({
                       <div className="font-pixel text-xs text-white truncate">
                         {w.name}
                       </div>
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="font-pixel text-xs text-retro-cyan">{w.rank}</span>
-                        <WinLossRecord wins={w.wins} losses={w.losses} />
+                      <div className="font-pixel text-xs text-retro-cyan">
+                        {w.rank}
                       </div>
                     </button>
                   ))}

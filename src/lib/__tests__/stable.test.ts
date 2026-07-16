@@ -25,13 +25,6 @@ beforeAll(() => {
       basho_id TEXT NOT NULL, tier INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY(id, basho_id)
     );
-    CREATE TABLE bout_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      basho_id TEXT NOT NULL, day INTEGER NOT NULL,
-      east_id INTEGER NOT NULL, west_id INTEGER NOT NULL,
-      winner_id INTEGER, loser_id INTEGER,
-      kimarite TEXT, is_kimboshi INTEGER DEFAULT 0
-    );
   `);
 
   const stable = db.prepare(
@@ -65,16 +58,6 @@ beforeAll(() => {
   ] as [number, string, string, number][]) {
     cache.run(id, name, rank, BASHO, tier);
   }
-
-  // Yoko (1) goes 2-1; MaeThree (12, alice's final tier-3 sub) goes 1-0;
-  // alice's other wrestlers have no decided bouts.
-  const bout = db.prepare(
-    "INSERT INTO bout_results (basho_id, day, east_id, west_id, winner_id, loser_id, kimarite, is_kimboshi) VALUES (?, ?, ?, ?, ?, ?, 'yorikiri', 0)"
-  );
-  bout.run(BASHO, 1, 1, 50, 1, 50);
-  bout.run(BASHO, 2, 50, 1, 1, 50);
-  bout.run(BASHO, 3, 1, 50, 50, 1);
-  bout.run(BASHO, 8, 12, 51, 12, 51);
 });
 
 describe("stableForDay", () => {
@@ -116,21 +99,15 @@ describe("currentStable", () => {
 });
 
 describe("stableWithDetails", () => {
-  it("includes each wrestler's cumulative win/loss record", () => {
+  it("includes names and ranks from the rikishi cache", () => {
     const stable = stableWithDetails(db, BASHO, "alice");
     const tier1 = stable.find((e) => e.tier === 1)!;
-    expect(tier1).toMatchObject({ rikishi_id: 1, name: "Yoko", rank: "Y1e", wins: 2, losses: 1 });
+    expect(tier1).toMatchObject({ rikishi_id: 1, name: "Yoko", rank: "Y1e" });
   });
 
-  it("defaults to 0-0 for wrestlers with no decided bouts", () => {
-    const stable = stableWithDetails(db, BASHO, "alice");
-    const tier2 = stable.find((e) => e.tier === 2)!;
-    expect(tier2).toMatchObject({ rikishi_id: 3, wins: 0, losses: 0 });
-  });
-
-  it("shows the substituted-in wrestler's record, not the original pick's", () => {
+  it("shows the substituted-in wrestler, not the original pick", () => {
     const stable = stableWithDetails(db, BASHO, "alice");
     const tier3 = stable.find((e) => e.tier === 3)!;
-    expect(tier3).toMatchObject({ rikishi_id: 12, name: "MaeThree", wins: 1, losses: 0 });
+    expect(tier3).toMatchObject({ rikishi_id: 12, name: "MaeThree", rank: "M3e" });
   });
 });

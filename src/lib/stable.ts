@@ -1,6 +1,5 @@
 import type Database from "better-sqlite3";
 import { stableLockDate } from "./basho";
-import { loadRecords } from "./records";
 
 type Db = Database.Database;
 
@@ -101,9 +100,8 @@ export function stableWithDetails(
   db: Db,
   bashoId: string,
   userId: string
-): { tier: number; rikishi_id: number; name: string; rank: string; wins: number; losses: number }[] {
+): { tier: number; rikishi_id: number; name: string; rank: string }[] {
   const activeByTier = currentStable(db, bashoId, userId);
-  const records = loadRecords(db, bashoId);
   const lookup = db.prepare(
     "SELECT name, rank FROM rikishi_cache WHERE id = ? AND basho_id = ?"
   );
@@ -111,14 +109,11 @@ export function stableWithDetails(
   const result = [];
   for (const [tier, rikishiId] of [...activeByTier.entries()].sort(([a], [b]) => a - b)) {
     const wrestler = lookup.get(rikishiId, bashoId) as { name: string; rank: string } | undefined;
-    const record = records.get(rikishiId);
     result.push({
       tier,
       rikishi_id: rikishiId,
       name: wrestler?.name ?? "",
       rank: wrestler?.rank ?? "",
-      wins: record?.wins ?? 0,
-      losses: record?.losses ?? 0,
     });
   }
   return result;
