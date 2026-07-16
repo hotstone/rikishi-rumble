@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { TIERS } from "@/types";
 import { detectClashes, type ClashBout } from "@/lib/clash";
+import WinLossRecord from "./WinLossRecord";
 
 interface Wrestler {
   id: number;
   name: string;
   rank: string;
   tier: number;
+  wins: number;
+  losses: number;
 }
 
 function useCountdown(targetDate: Date | null) {
@@ -196,8 +199,9 @@ export function StableSelector({
                       <div className="font-pixel text-xs text-white truncate">
                         {w.name}
                       </div>
-                      <div className="font-pixel text-xs text-retro-cyan">
-                        {w.rank}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-pixel text-xs text-retro-cyan">{w.rank}</span>
+                        <WinLossRecord wins={w.wins} losses={w.losses} />
                       </div>
                     </button>
                   ))}

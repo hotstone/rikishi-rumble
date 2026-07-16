@@ -1,10 +1,20 @@
 import { getDb } from "./db";
+import { loadRecords, type RikishiRecord } from "./records";
 
 export interface WrestlerRow {
   id: number;
   name: string;
   rank: string;
   tier: number;
+  wins: number;
+  losses: number;
+}
+
+type CacheRow = Omit<WrestlerRow, "wins" | "losses">;
+
+function withRecord(w: CacheRow, records: Map<number, RikishiRecord>): WrestlerRow {
+  const record = records.get(w.id);
+  return { ...w, wins: record?.wins ?? 0, losses: record?.losses ?? 0 };
 }
 
 /**
@@ -17,6 +27,7 @@ export function getWrestlers(
   day: number | null
 ): WrestlerRow[] {
   const db = getDb();
+  const records = loadRecords(db, bashoId);
 
   if (day !== null) {
     const bouts = db
@@ -35,9 +46,11 @@ export function getWrestlers(
         .prepare(
           `SELECT id, name, rank, tier FROM rikishi_cache WHERE basho_id = ? AND id IN (${placeholders})`
         )
-        .all(bashoId, ...Array.from(fighterIds)) as WrestlerRow[];
+        .all(bashoId, ...Array.from(fighterIds)) as CacheRow[];
 
-      const wrestlers = rows.map((w) => ({ ...w, tier: w.tier === 0 ? 5 : w.tier }));
+      const wrestlers = rows.map((w) =>
+        withRecord({ ...w, tier: w.tier === 0 ? 5 : w.tier }, records)
+      );
 
       const filtered = tier !== null ? wrestlers.filter((w) => w.tier === tier) : wrestlers;
 
@@ -58,5 +71,6 @@ export function getWrestlers(
 
   query += " ORDER BY tier, rank";
 
-  return db.prepare(query).all(...params) as WrestlerRow[];
+  const rows = db.prepare(query).all(...params) as CacheRow[];
+  return rows.map((w) => withRecord(w, records));
 }

@@ -23,6 +23,7 @@ Port 3000 is occupied on this machine — always use 3001.
 - `src/lib/scoring.ts` — `calculateScores` + `getLeaderboard` (set-based, no N+1)
 - `src/lib/bouts.ts` — bouts-by-day payload, owner initials (config `initials` field, first-letter fallback)
 - `src/lib/wrestlers.ts`, `src/lib/champions.ts` — remaining read models
+- `src/lib/records.ts` — cumulative per-rikishi win/loss records (`loadRecords`)
 - `src/lib/users.ts` — `userIdFromName` slug (pure, client-safe)
 - `src/lib/session.ts` — session cookie helpers (no bcrypt; safe for middleware)
 - `src/lib/auth.ts` — bcrypt hash/verify + users-table row helpers
