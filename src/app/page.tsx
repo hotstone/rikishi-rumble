@@ -28,6 +28,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const scanlines = true;
   const [basho, setBasho] = useState("");
+  const [bashoEndedLabel, setBashoEndedLabel] = useState<string | null>(null);
   const [currentDay, setCurrentDay] = useState(0);
   const [hasSubClash, setHasSubClash] = useState(false);
 
@@ -42,7 +43,20 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/basho")
       .then((r) => r.json())
-      .then((data) => setBasho(data.basho || ""));
+      .then((data) => {
+        setBasho(data.basho || "");
+        if (data.status === "completed" && data.startDate) {
+          // Day 15 = start + 14 days; startDate is 00:00 UTC, so UTC date parts
+          // match the JST calendar date.
+          const endDate = new Date(Date.parse(data.startDate) + 14 * 86400000);
+          const formatted = endDate
+            .toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })
+            .toUpperCase();
+          setBashoEndedLabel(`ENDED ${formatted}`);
+        } else {
+          setBashoEndedLabel(null);
+        }
+      });
   }, []);
 
   // Fetch leaderboard data when logged in
@@ -119,7 +133,7 @@ export default function Home() {
               </h1>
               {basho && (
                 <p className="font-pixel text-xs text-retro-cyan">
-                  {bashoLabel(basho)}{currentDay > 0 && ` - DAY ${currentDay}`}
+                  {bashoLabel(basho)}{bashoEndedLabel ? ` - ${bashoEndedLabel}` : currentDay > 0 && ` - DAY ${currentDay}`}
                 </p>
               )}
             </div>
