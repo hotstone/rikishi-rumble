@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { currentOrNextBashoInfo, stableLockDate } from "@/lib/basho";
-import { getActiveBasho } from "@/lib/active-basho";
+import { getDisplayBasho } from "@/lib/active-basho";
 import { subWindowIntervals } from "@/lib/substitution";
 
 export async function GET() {
-  const basho = getActiveBasho();
-  const info = currentOrNextBashoInfo(basho?.id || null, basho?.start_date || null);
+  const basho = getDisplayBasho();
+  // A completed basho is shown for its results, but the countdown should
+  // point at the next basho — so treat it as "no active basho" here.
+  const completed = basho?.status === "completed";
+  const info = currentOrNextBashoInfo(
+    completed ? null : basho?.id || null,
+    basho?.start_date || null
+  );
   const lockDate = basho ? stableLockDate(basho.id, basho.start_date) : null;
 
   // Absolute UTC timestamps for the nightly substitution windows, so clients

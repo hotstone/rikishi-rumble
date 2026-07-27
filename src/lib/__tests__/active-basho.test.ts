@@ -17,11 +17,13 @@ fs.writeFileSync(
 // Nagoya 2026 starts Sunday 2026-07-12; Aki starts 2026-09-13.
 
 let getActiveBasho: typeof import("@/lib/active-basho").getActiveBasho;
+let getDisplayBasho: typeof import("@/lib/active-basho").getDisplayBasho;
 let db: import("better-sqlite3").Database;
 
 beforeAll(async () => {
   const activeBasho = await import("@/lib/active-basho");
   getActiveBasho = activeBasho.getActiveBasho;
+  getDisplayBasho = activeBasho.getDisplayBasho;
   db = (await import("@/lib/db")).getDb();
 });
 
@@ -72,5 +74,37 @@ describe("getActiveBasho", () => {
 
   it("opens Aki for selection in the week before Sep 13", () => {
     expect(getActiveBasho(new Date("2026-09-08T00:00:00Z"))?.id).toBe("202609");
+  });
+});
+
+// Runs after the getActiveBasho suite, which has left basho rows for 202607
+// (started 2026-07-12) and 202609 (starts 2026-09-13) in the test DB.
+describe("getDisplayBasho", () => {
+  it("returns the active basho while one is running", () => {
+    const basho = getDisplayBasho(new Date("2026-07-15T00:00:00Z"));
+    expect(basho?.id).toBe("202607");
+    // The row keeps whatever status it was created with ('upcoming' here);
+    // only the between-basho fallback reports "completed".
+    expect(basho?.status).not.toBe("completed");
+  });
+
+  it("falls back to the last completed basho between tournaments", () => {
+    // Mid-August: Nagoya is over, Aki is 4 weeks out.
+    expect(getActiveBasho(new Date("2026-08-15T00:00:00Z"))).toBe(null);
+    const basho = getDisplayBasho(new Date("2026-08-15T00:00:00Z"));
+    expect(basho?.id).toBe("202607");
+    expect(basho?.status).toBe("completed");
+  });
+
+  it("ignores basho rows that have not started yet", () => {
+    // The 202609 row exists (created by the selection-window test) but its
+    // start date is in the future, so it is not "last completed".
+    expect(getDisplayBasho(new Date("2026-08-15T00:00:00Z"))?.id).toBe("202607");
+  });
+
+  it("switches to the upcoming basho once its selection window opens", () => {
+    const basho = getDisplayBasho(new Date("2026-09-08T00:00:00Z"));
+    expect(basho?.id).toBe("202609");
+    expect(basho?.status).toBe("upcoming");
   });
 });

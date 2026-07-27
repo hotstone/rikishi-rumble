@@ -22,6 +22,31 @@ export function getActiveBashoId(now: Date = new Date()): string | null {
   return getActiveBasho(now)?.id || null;
 }
 
+/**
+ * The basho to show on read-only screens: the active basho when there is one,
+ * otherwise the most recently completed basho so results stay visible between
+ * tournaments. Never used for writes (picks, subs) or syncing.
+ */
+export function getDisplayBasho(now: Date = new Date()): ActiveBasho | null {
+  return getActiveBasho(now) ?? lastCompletedBasho(now);
+}
+
+export function getDisplayBashoId(now: Date = new Date()): string | null {
+  return getDisplayBasho(now)?.id || null;
+}
+
+function lastCompletedBasho(now: Date): ActiveBasho | null {
+  const row = getDb()
+    .prepare(
+      `SELECT id, start_date, status FROM basho
+       WHERE start_date IS NOT NULL AND start_date <= ?
+       ORDER BY id DESC LIMIT 1`
+    )
+    .get(now.toISOString()) as ActiveBasho | undefined;
+
+  return row ? { ...row, status: "completed" } : null;
+}
+
 /** The basho currently underway (day 1-15, and not fully decided on day 15). */
 function runningBasho(now: Date): ActiveBasho | null {
   const candidate = mostRecentBashoStart(now);

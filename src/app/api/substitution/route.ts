@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getActiveBashoId } from "@/lib/active-basho";
+import { getActiveBashoId, getDisplayBashoId } from "@/lib/active-basho";
 import { getSubstitutions, applySubstitution } from "@/lib/substitution";
 import { getSessionFromRequest } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
   const bashoId =
-    request.nextUrl.searchParams.get("basho") || getActiveBashoId();
+    request.nextUrl.searchParams.get("basho") || getDisplayBashoId();
 
   if (!userId) {
     return NextResponse.json({ error: "userId required" }, { status: 400 });
