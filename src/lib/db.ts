@@ -209,6 +209,13 @@ export function migrateUsersToAccounts(db: Database.Database) {
      ON CONFLICT(id) DO NOTHING`
   );
 
+  // Existing accounts are never overwritten, but initials may arrive in
+  // config after the account was seeded (volume config lags the repo) —
+  // backfill them so deploy order doesn't matter.
+  const backfillInitials = db.prepare(
+    "UPDATE accounts SET initials = ? WHERE id = ? AND initials IS NULL"
+  );
+
   const now = new Date().toISOString();
   const transaction = db.transaction(() => {
     for (const user of users) {
@@ -221,6 +228,8 @@ export function migrateUsersToAccounts(db: Database.Database) {
         user.admin ? 1 : 0,
         now
       );
+      const initials = initialsById.get(user.id);
+      if (initials) backfillInitials.run(initials, user.id);
     }
   });
 

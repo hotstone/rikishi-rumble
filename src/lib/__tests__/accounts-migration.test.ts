@@ -159,3 +159,31 @@ describe("migrateUsersToAccounts", () => {
     expect(accounts()).toEqual([]);
   });
 });
+
+describe("initials backfill", () => {
+  it("fills initials on an existing account that was seeded without them", () => {
+    seedUser("matt", "Matt", "$2a$10$hash", 1);
+    db.prepare(
+      `INSERT INTO accounts (id, email, display_name, initials, password_hash, is_site_admin, created_at)
+       VALUES ('matt', 'matt@rikishi-rumble.com', 'Matt', NULL, '$2a$10$hash', 1, 't0')`
+    ).run();
+
+    migrateUsersToAccounts(db);
+
+    expect(accounts()[0].initials).toBe("MH");
+    // Everything else untouched
+    expect(accounts()[0].email).toBe("matt@rikishi-rumble.com");
+  });
+
+  it("never overwrites initials that are already set", () => {
+    seedUser("matt", "Matt", null, 1);
+    db.prepare(
+      `INSERT INTO accounts (id, email, display_name, initials, password_hash, is_site_admin, created_at)
+       VALUES ('matt', 'matt@rikishi-rumble.com', 'Matt', 'XX', NULL, 1, 't0')`
+    ).run();
+
+    migrateUsersToAccounts(db);
+
+    expect(accounts()[0].initials).toBe("XX");
+  });
+});
