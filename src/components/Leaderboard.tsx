@@ -97,11 +97,14 @@ export function Leaderboard() {
           </div>
 
           {leaderboard.map((entry, idx) => {
-            // Dense ranking: same points = same rank
+            // Dense ranking: tied only on points AND kimboshi (the tiebreaker)
+            const tiedWith = (e: typeof entry) =>
+              e.total_points === entry.total_points &&
+              e.kimboshi_total === entry.kimboshi_total;
             const rank = idx === 0
               ? 1
-              : entry.total_points === leaderboard[idx - 1].total_points
-                ? leaderboard.findIndex((e) => e.total_points === entry.total_points) + 1
+              : tiedWith(leaderboard[idx - 1])
+                ? leaderboard.findIndex(tiedWith) + 1
                 : idx + 1;
             const isFirst = rank === 1 && entry.total_points > 0;
 
