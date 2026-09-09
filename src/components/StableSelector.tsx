@@ -53,13 +53,7 @@ function useCountdown(targetDate: Date | null) {
   return { timeLeft, locked };
 }
 
-export function StableSelector({
-  userId,
-  userName,
-}: {
-  userId: string;
-  userName: string;
-}) {
+export function StableSelector() {
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [picks, setPicks] = useState<Record<number, number>>({});
   const [saving, setSaving] = useState(false);
@@ -72,7 +66,7 @@ export function StableSelector({
   useEffect(() => {
     Promise.all([
       fetch("/api/wrestlers").then((r) => r.json()),
-      fetch(`/api/stable?userId=${userId}`).then((r) => r.json()),
+      fetch("/api/stable").then((r) => r.json()),
       fetch("/api/basho").then((r) => r.json()),
       fetch("/api/basho/bouts").then((r) => r.json()),
     ]).then(([wrestlerData, stableData, bashoData, boutsData]) => {
@@ -90,7 +84,7 @@ export function StableSelector({
 
       setDayOneBouts(boutsData.boutsByDay?.[1] ?? []);
     });
-  }, [userId]);
+  }, []);
 
   const clashes = detectClashes(new Set(Object.values(picks)), dayOneBouts);
 

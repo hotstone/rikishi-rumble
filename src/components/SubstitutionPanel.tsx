@@ -82,13 +82,7 @@ interface SubstitutionRecord {
   created_at: string;
 }
 
-export function SubstitutionPanel({
-  userId,
-  userName,
-}: {
-  userId: string;
-  userName: string;
-}) {
+export function SubstitutionPanel() {
   const [stable, setStable] = useState<StableEntry[]>([]);
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [substitutions, setSubstitutions] = useState<SubstitutionRecord[]>([]);
@@ -107,8 +101,8 @@ export function SubstitutionPanel({
 
   const loadData = useCallback(async () => {
     const [stableRes, subRes, lbRes, boutsRes, bashoRes] = await Promise.all([
-      fetch(`/api/stable?userId=${userId}`).then((r) => r.json()),
-      fetch(`/api/substitution?userId=${userId}`).then((r) => r.json()),
+      fetch("/api/stable").then((r) => r.json()),
+      fetch("/api/substitution").then((r) => r.json()),
       fetch("/api/leaderboard").then((r) => r.json()),
       fetch("/api/basho/bouts").then((r) => r.json()),
       fetch("/api/basho").then((r) => r.json()),
@@ -130,7 +124,7 @@ export function SubstitutionPanel({
         closesAt: new Date(w.closesAt),
       }))
     );
-  }, [userId]);
+  }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData(); }, [loadData]);

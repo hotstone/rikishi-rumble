@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/lib/session";
+import { getSessionAccountId } from "@/lib/session";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public endpoints
@@ -9,8 +9,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // All other /api/* routes require a valid session cookie
-  if (!getSessionFromRequest(request)) {
+  // All other /api/* routes require a valid signed session token
+  if (!(await getSessionAccountId(request))) {
     return NextResponse.json(
       { error: "Authentication required" },
       { status: 401 }

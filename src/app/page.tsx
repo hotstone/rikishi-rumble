@@ -207,24 +207,18 @@ export default function Home() {
         {/* Authenticated pages */}
         {activeTab === "leaderboard" && session && <Leaderboard />}
 
-        {activeTab === "basho" && session && <BashoPage userName={session?.name} />}
+        {activeTab === "basho" && session && <BashoPage />}
 
         {activeTab === "stable" && session && (
-          <StableSelector
-            userId={session.userId}
-            userName={session.name}
-          />
+          <StableSelector />
         )}
 
         {activeTab === "substitution" && session && (
-          <SubstitutionPanel
-            userId={session.userId}
-            userName={session.name}
-          />
+          <SubstitutionPanel />
         )}
 
         {activeTab === "admin" && session?.admin && (
-          <AdminPanel userName={session.name} />
+          <AdminPanel />
         )}
       </main>
 

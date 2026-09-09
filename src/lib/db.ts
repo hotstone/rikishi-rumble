@@ -23,6 +23,8 @@ export function getDb(): Database.Database {
   initializeSchema(db);
   migrateSchema(db);
   syncUsersFromConfig(db);
+  // Idempotent: also picks up any config user added after the schema-v2 seed ran.
+  migrateUsersToAccounts(db);
 
   return db;
 }
@@ -91,6 +93,16 @@ function initializeSchema(db: Database.Database) {
       PRIMARY KEY(basho_id, user_id, day)
     );
 
+    CREATE TABLE IF NOT EXISTS accounts (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      display_name TEXT NOT NULL,
+      initials TEXT,
+      password_hash TEXT,
+      is_site_admin INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS sync_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       basho_id TEXT NOT NULL,
@@ -156,6 +168,72 @@ function migrateSchema(db: Database.Database) {
     repairMutatedStables(db);
     db.prepare("INSERT INTO schema_version (version) VALUES (1)").run();
   }
+
+  if (version < 2) {
+    migrateUsersToAccounts(db);
+    db.prepare("INSERT INTO schema_version (version) VALUES (2)").run();
+  }
+}
+
+/** Domain for generated account emails. Real domain; no mailboxes exist yet. */
+export const ACCOUNT_EMAIL_DOMAIN = "rikishi-rumble.com";
+
+/**
+ * Phase 4 identity migration: seed `accounts` from the legacy `users` table.
+ *
+ * Deviation from REFACTOR_PLAN: account ids REUSE the existing slug user ids
+ * rather than being fresh nanoids. Every stables/substitutions/daily_scores row
+ * is already keyed by that slug, so reusing it keeps history intact with zero
+ * row rewrites and no window where a foreign key points at nothing.
+ *
+ * bcrypt hashes carry across untouched -- every production user has already
+ * completed the PIN->password migration, so nobody is forced to reset.
+ * Exported for tests.
+ */
+export function migrateUsersToAccounts(db: Database.Database) {
+  const users = db
+    .prepare("SELECT id, name, password_hash, admin FROM users")
+    .all() as { id: string; name: string; password_hash: string | null; admin: number }[];
+
+  if (users.length === 0) return;
+
+  const initialsById = new Map<string, string | null>();
+  for (const user of getConfig().users) {
+    initialsById.set(userIdFromName(user.name), user.initials ?? null);
+  }
+
+  const insert = db.prepare(
+    `INSERT INTO accounts
+       (id, email, display_name, initials, password_hash, is_site_admin, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO NOTHING`
+  );
+
+  // Existing accounts are never overwritten, but initials may arrive in
+  // config after the account was seeded (volume config lags the repo) —
+  // backfill them so deploy order doesn't matter.
+  const backfillInitials = db.prepare(
+    "UPDATE accounts SET initials = ? WHERE id = ? AND initials IS NULL"
+  );
+
+  const now = new Date().toISOString();
+  const transaction = db.transaction(() => {
+    for (const user of users) {
+      insert.run(
+        user.id,
+        `${user.id}@${ACCOUNT_EMAIL_DOMAIN}`,
+        user.name,
+        initialsById.get(user.id) ?? null,
+        user.password_hash,
+        user.admin ? 1 : 0,
+        now
+      );
+      const initials = initialsById.get(user.id);
+      if (initials) backfillInitials.run(initials, user.id);
+    }
+  });
+
+  transaction();
 }
 
 /**

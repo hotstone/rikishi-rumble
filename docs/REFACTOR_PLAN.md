@@ -174,6 +174,36 @@ byte-identical to before (snapshot test).
 
 ## Phase 4 — Replace the identity layer (must complete before Aki, Sep 13)
 
+**Status update 2026-09-09 (2):** code complete on `feat/phase4-email-auth`.
+Schema + migration, jose JWT sessions (HttpOnly; the old cookie was httpOnly:
+false — any user could forge admin from the console), login/logout/me/signup
+(+ admin reset-password & accounts routes replacing admin/pin), PIN flow
+deleted, `?userId=` spoofing closed (GETs now take identity from the session).
+Smoke-tested end-to-end against a copy of prod: forged old-format cookie
+rejected, gated signup 403, spoofed userId ignored. 122 tests green.
+Emails are `<slug>@rikishi-rumble.com` (domain owned; no mailboxes yet, so
+Phase 6 email reset needs real addresses or MX first). **Cutover deferred to the Sep 28 - Nov 7
+gap** — Aki starts Sep 13, and the plan's own "weeks of soak" is not available in
+four days. Nothing is deployed.
+
+Two corrections to this phase as written, from real prod data:
+- It is **8 users**, not the 3 named below (`matt`, `marc`, `mac`). Adds `alyssa`,
+  `chai`, `lj`, `sarah`, `woz`.
+- **Every user already has a `password_hash`** — the PIN->password migration is
+  complete in production. Hashes carry across untouched; no password resets, and
+  no out-of-band email collection was needed (addresses are `<slug>@rikishi-rumble.com`).
+
+**Deviation — account ids reuse the existing slug ids, not fresh nanoids.**
+`stables` (100 rows), `substitutions` (277) and `daily_scores` (300) are all keyed
+by that slug already, so reusing it keeps history with zero row rewrites and no
+window where a foreign key dangles. Verified: leaderboards for 202603/202605/202607
+are byte-identical before and after the migration on a copy of prod.
+
+**Deviation — `accounts.initials` is nullable, not NOT NULL.** `bouts.ts` already
+falls back to a first letter, so a null is safe. (A Chai/Marc `MC` collision was
+caught during this work; resolved 2026-09-09 — Chai is `CH`.)
+
+
 This layer is rewritten, not refactored. Deletes the PIN flow entirely.
 
 ### Schema (new migration)
