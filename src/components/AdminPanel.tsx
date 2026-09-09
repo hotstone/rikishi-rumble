@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 interface AccountOption {
   id: string;
   display_name: string;
+  email: string;
 }
 
 export function AdminPanel() {
@@ -174,7 +175,7 @@ export function AdminPanel() {
             <option value="">SELECT USER</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.display_name}
+                {a.display_name} ({a.email})
               </option>
             ))}
           </select>
