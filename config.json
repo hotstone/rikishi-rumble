@@ -10,7 +10,8 @@
     {
       "name": "Sarah",
       "pin": "6666",
-      "admin": false
+      "admin": false,
+      "initials": "SP"
     },
     {
       "name": "Marc",
@@ -21,12 +22,14 @@
     {
       "name": "Chai",
       "pin": "6666",
-      "admin": true
+      "admin": true,
+      "initials": "CH"
     },
     {
       "name": "Alyssa",
       "pin": "6666",
-      "admin": false
+      "admin": false,
+      "initials": "AS"
     },
     {
       "name": "Mac",
