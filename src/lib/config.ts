@@ -31,28 +31,5 @@ export function reloadConfig(): AppConfig {
   return getConfig();
 }
 
-export function validatePin(userName: string, pin: string): boolean {
-  const config = getConfig();
-  const user = config.users.find((u) => u.name === userName);
-  return user?.pin === pin;
-}
 
-export function isAdmin(userName: string): boolean {
-  const config = getConfig();
-  const user = config.users.find((u) => u.name === userName);
-  return user?.admin ?? false;
-}
 
-export function updateUserPin(targetName: string, newPin: string): boolean {
-  const configPath = getConfigPath();
-  const raw = fs.readFileSync(configPath, "utf-8");
-  const config = JSON.parse(raw) as AppConfig;
-
-  const user = config.users.find((u) => u.name === targetName);
-  if (!user) return false;
-
-  user.pin = newPin;
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
-  cachedConfig = null;
-  return true;
-}

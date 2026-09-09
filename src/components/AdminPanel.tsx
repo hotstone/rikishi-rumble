@@ -2,16 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-interface UserOption {
+interface AccountOption {
   id: string;
-  name: string;
+  display_name: string;
 }
 
-export function AdminPanel({ userName }: { userName: string }) {
+export function AdminPanel() {
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [selectedUser, setSelectedUser] = useState("");
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
   const [resetMessage, setResetMessage] = useState("");
   const [autoSyncDay, setAutoSyncDay] = useState<number | null>(null);
   const autoSyncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -29,9 +30,9 @@ export function AdminPanel({ userName }: { userName: string }) {
   }, [stopAutoSync]);
 
   useEffect(() => {
-    fetch("/api/auth")
+    fetch("/api/admin/accounts")
       .then((r) => r.json())
-      .then((data) => setUsers(data.users));
+      .then((data) => setAccounts(data.accounts || []));
   }, []);
 
   const runDaySync = useCallback(async (day: number): Promise<boolean> => {
@@ -162,36 +163,44 @@ export function AdminPanel({ userName }: { userName: string }) {
       <div className="mt-4 border-t-2 border-retro-border pt-4">
         <h3 className="font-pixel text-xs text-retro-cyan mb-3">RESET USER PASSWORD</h3>
         <p className="font-pixel text-xs text-gray-400 mb-2">
-          RESETS PASSWORD SO USER MUST SET A NEW ONE VIA PIN
+          SETS A TEMPORARY PASSWORD — TELL THE USER OUT-OF-BAND
         </p>
         <div className="flex items-center gap-2 flex-wrap">
           <select
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
             className="retro-select text-xs"
           >
             <option value="">SELECT USER</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.name}>
-                {u.name}
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.display_name}
               </option>
             ))}
           </select>
+          <input
+            type="text"
+            placeholder="TEMP PASSWORD"
+            value={tempPassword}
+            onChange={(e) => setTempPassword(e.target.value)}
+            className="retro-input w-32 text-xs text-center"
+          />
           <button
             onClick={async () => {
               setResetMessage("");
-              const res = await fetch("/api/admin/pin", {
+              const res = await fetch("/api/admin/reset-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ targetUser: selectedUser }),
+                body: JSON.stringify({ accountId: selectedAccount, tempPassword }),
               });
               const data = await res.json();
               setResetMessage(data.message || data.error);
               if (res.ok) {
-                setSelectedUser("");
+                setSelectedAccount("");
+                setTempPassword("");
               }
             }}
-            disabled={!selectedUser}
+            disabled={!selectedAccount || tempPassword.length < 8}
             className="retro-btn text-xs px-3 py-1"
           >
             RESET
@@ -199,7 +208,7 @@ export function AdminPanel({ userName }: { userName: string }) {
         </div>
         {resetMessage && (
           <p className={`font-pixel text-xs mt-2 ${
-            resetMessage.startsWith("Password") ? "text-retro-green" : "text-retro-red"
+            resetMessage.startsWith("Temporary") ? "text-retro-green" : "text-retro-red"
           }`}>
             {resetMessage}
           </p>

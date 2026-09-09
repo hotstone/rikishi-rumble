@@ -174,9 +174,15 @@ byte-identical to before (snapshot test).
 
 ## Phase 4 — Replace the identity layer (must complete before Aki, Sep 13)
 
-**Status update 2026-09-09:** started on branch `feat/phase4-email-auth`. Schema +
-data migration done and verified against a copy of prod (`schema_version` 2);
-sessions, endpoints and UI still to do. **Cutover deferred to the Sep 28 - Nov 7
+**Status update 2026-09-09 (2):** code complete on `feat/phase4-email-auth`.
+Schema + migration, jose JWT sessions (HttpOnly; the old cookie was httpOnly:
+false — any user could forge admin from the console), login/logout/me/signup
+(+ admin reset-password & accounts routes replacing admin/pin), PIN flow
+deleted, `?userId=` spoofing closed (GETs now take identity from the session).
+Smoke-tested end-to-end against a copy of prod: forged old-format cookie
+rejected, gated signup 403, spoofed userId ignored. 122 tests green.
+Emails are `<slug>@rikishi-rumble.com` (domain owned; no mailboxes yet, so
+Phase 6 email reset needs real addresses or MX first). **Cutover deferred to the Sep 28 - Nov 7
 gap** — Aki starts Sep 13, and the plan's own "weeks of soak" is not available in
 four days. Nothing is deployed.
 

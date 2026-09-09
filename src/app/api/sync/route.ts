@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getActiveBashoId } from "@/lib/active-basho";
 import { syncBanzuke, syncAllDays, syncDay } from "@/lib/sync";
 import { calculateScores } from "@/lib/scoring";
-import { getSessionFromRequest } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const session = getSessionFromRequest(request);
+  const session = await getSessionUser(request);
   if (!session || !session.admin) {
     return NextResponse.json(
       { error: "Admin access required" },

@@ -23,6 +23,8 @@ export function getDb(): Database.Database {
   initializeSchema(db);
   migrateSchema(db);
   syncUsersFromConfig(db);
+  // Idempotent: also picks up any config user added after the schema-v2 seed ran.
+  migrateUsersToAccounts(db);
 
   return db;
 }

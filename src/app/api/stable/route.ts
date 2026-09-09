@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getActiveBashoId, getDisplayBashoId } from "@/lib/active-basho";
-import { getSessionFromRequest } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth";
 import { stableWithDetails, savePicks } from "@/lib/stable";
 
 export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get("userId");
+  // Identity comes from the session, never from a query param.
+  const session = await getSessionUser(request);
+  if (!session) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+  const userId = session.userId;
   const bashoId =
     request.nextUrl.searchParams.get("basho") || getDisplayBashoId();
-
-  if (!userId) {
-    return NextResponse.json({ error: "userId required" }, { status: 400 });
-  }
 
   if (!bashoId) {
     return NextResponse.json({ stable: [], basho: null });
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = getSessionFromRequest(request);
+  const session = await getSessionUser(request);
   if (!session) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }

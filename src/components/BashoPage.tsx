@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { userIdFromName } from "@/lib/users";
 
 interface Bout {
   east_id: number;
@@ -25,19 +24,14 @@ interface BashoData {
   myInitials?: string | null;
 }
 
-export function BashoPage({ userName }: { userName?: string }) {
+export function BashoPage() {
   const [data, setData] = useState<BashoData | null>(null);
   const myInitials = data?.myInitials ?? null;
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
   const initialLoad = useRef(true);
 
-  const userId = userName ? userIdFromName(userName) : null;
-
   const fetchData = useCallback(() => {
-    const url = userId
-      ? `/api/basho/bouts?userId=${encodeURIComponent(userId)}`
-      : "/api/basho/bouts";
-    fetch(url)
+    fetch("/api/basho/bouts")
       .then((r) => r.json())
       .then((d: BashoData) => {
         setData(d);
@@ -46,7 +40,7 @@ export function BashoPage({ userName }: { userName?: string }) {
           initialLoad.current = false;
         }
       });
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     fetchData();

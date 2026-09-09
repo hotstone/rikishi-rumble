@@ -29,26 +29,22 @@ The app is designed for a small, trusted group of 5-15 users defined in a config
 
 ## Users & Access
 
-Users are defined in `config.json` managed by an admin. Each user entry contains a display name, an optional legacy PIN (for migration), and an `admin` boolean flag. Admin users can trigger manual data syncs and manage user passwords.
+Identity lives in the `accounts` SQLite table (id, unique case-insensitive email, display name, initials, bcrypt password hash, site-admin flag). The legacy `users` table and the `config.json` user list still exist for seeding/sync during the transition and are dropped at Phase 4 cutover completion. Admin users can trigger manual data syncs and set temporary passwords.
 
 ### Authentication
 
-Users authenticate with a password (minimum 8 characters). Passwords are hashed with bcrypt (cost factor 10) and stored in the `users` SQLite table. Sessions are managed via a `rikishi-session` cookie (non-HttpOnly, SameSite=Lax, 30-day expiry) containing `{ userId, name, admin }`.
+Users log in with **email + password** (minimum 8 characters) at `POST /api/auth/login`. Passwords are hashed with bcrypt (cost factor 10). Sessions are a **signed HS256 JWT** (via `jose`, `SESSION_SECRET` env var) in an **HttpOnly** `rikishi-session` cookie (SameSite=Lax, Secure in production, 30-day expiry). The token carries only `{ sub: accountId, exp }` — name and admin flag are looked up server-side on every request, so neither can be forged client-side.
+
+Endpoints: `POST /api/auth/login`, `POST /api/auth/logout` (clears the cookie server-side), `GET /api/auth/me` (session identity for the client), `POST /api/auth/signup` (disabled unless `SIGNUPS_ENABLED=true`; opens with invite codes in Phase 5).
 
 All pages and API routes are protected:
-- **Next.js middleware** gates all `/api/*` routes (except `/api/auth/*`) — returns 401 without a valid session cookie
+- **Next.js middleware** verifies the JWT signature on all `/api/*` routes (except `/api/auth/*` and `/api/basho`) — returns 401 otherwise
 - **Front page** shows only a login form when not authenticated — no leaderboard, basho info, or tabs are visible
-- **API routes** that perform writes additionally validate the session to determine user identity (replacing the old PIN-in-body approach)
+- **All API routes take user identity from the session** — `?userId=` query parameters are ignored (previously they let any caller read another user's stable and substitutions)
 
-### Migration from PIN
+### Password reset
 
-Existing users who have not yet set a password are prompted to do so on first login:
-1. User enters their old 4-digit PIN as "password"
-2. Server validates the PIN against `config.json` and returns `needsPassword: true`
-3. User sets a new password (8+ chars) via the "Set Your Password" form
-4. Future logins use the new password only
-
-Admins can reset a user's password (clears `password_hash`), forcing them through the PIN migration flow again.
+Site admins set a temporary password on an account (`POST /api/admin/reset-password`) and pass it to the user out-of-band. Email-based self-service reset is deferred to Phase 6 (generated `@rikishi-rumble.com` addresses cannot receive mail yet). The PIN migration flow is gone — every account carried its bcrypt hash over from the `users` table.
 
 The config file defines users and a notional timezone field. The active basho is **not** stored anywhere — it is computed on demand from (a) the calendar (each basho starts on the second Sunday of an odd month and runs 15 days) and (b) day-15 bout completion (a basho is active only while it has unresolved bouts on day 15 or earlier). See "Active basho determination" in the Data Sync section. All sumo-event-aligned timing (substitution window, cron sync, day boundaries) is anchored to **JST** in code, regardless of the config value.
 
@@ -140,7 +136,7 @@ The app is built as a **Next.js (TypeScript)** full-stack application with **SQL
 
 ## Data Model
 
-The SQLite database stores user stables, match results (cached from the API), and computed scores. The config file remains the source of truth for user identity and PINs.
+The SQLite database stores user stables, match results (cached from the API), and computed scores. The `accounts` table is the source of truth for user identity; the config file user list survives only to seed accounts until Phase 4 cutover completes.
 
 ```sql
 -- Core tables
@@ -215,7 +211,7 @@ The visual design is inspired by **Kunio-kun / Nekketsu** series games (River Ci
 - **SUBS tab clash indicator:** An `!` badge appears on the SUBS tab when two wrestlers in your stable are scheduled to face each other the following day.
 - **Basho countdown banner:** A banner across the very top of the page counting down to the next basho start date (days, hours, minutes, seconds). Automatically hidden when a basho is active. The next basho start is calculated as the second Sunday of the next odd month (Jan, Mar, May, Jul, Sep, Nov).
 - **Hall of Champions:** Displayed on the home page (pre-login). Lists previous basho winners ranked by highest points, showing player name, basho name, and score. When fewer than 8 champions exist, remaining slots are filled with legendary sumo wrestler names (Hakuho, Taiho, Chiyonofuji, etc.) at 0 points.
-- **User selector:** Dropdown with user names + PIN input field. No separate login page -- integrated into the header/nav bar.
+- **Login form:** Email + password fields. No separate login page -- integrated into the header/nav bar.
 
 ### Design Direction
 
