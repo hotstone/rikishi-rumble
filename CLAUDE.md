@@ -2,6 +2,7 @@
 
 ## Dev server
 ```bash
+nvm use 20   # REQUIRED: better-sqlite3 won't compile on Node 26 (V8 API removed)
 npm run dev -- --port 3001
 ```
 Port 3000 is occupied on this machine — always use 3001.
@@ -13,8 +14,8 @@ Port 3000 is occupied on this machine — always use 3001.
 - Deployed via Fly.io (`fly deploy`)
 
 ## Project structure
-- `config.json` — user definitions (name, PIN, admin flag), basho ID, timezone
-- `src/lib/config.ts` — config loader, PIN validation
+- `config.json` — legacy user list (seeds `accounts` until Phase 4 cutover completes), timezone
+- `src/lib/config.ts` — config loader
 - `src/lib/db.ts` — SQLite connection, schema, migrations, user sync from config
 - `src/lib/active-basho.ts` — active-basho detection (server-only, uses DB)
 - `src/lib/basho.ts` — basho calendar math (pure, client-safe)
@@ -25,8 +26,8 @@ Port 3000 is occupied on this machine — always use 3001.
 - `src/lib/wrestlers.ts`, `src/lib/champions.ts` — remaining read models
 - `src/lib/records.ts` — cumulative per-rikishi win/loss records (`loadRecords`)
 - `src/lib/users.ts` — `userIdFromName` slug (pure, client-safe)
-- `src/lib/session.ts` — session cookie helpers (no bcrypt; safe for middleware)
-- `src/lib/auth.ts` — bcrypt hash/verify + users-table row helpers
+- `src/lib/session.ts` — signed JWT session tokens via jose (edge-safe; SESSION_SECRET env)
+- `src/lib/auth.ts` — bcrypt hash/verify, accounts-table helpers, getSessionUser
 - `src/lib/clash.ts` — stablemate clash detection (pure, client-safe)
 - `src/lib/sumo-api.ts` — API client for sumo-api.com (banzuke, torikumi) + rank parsing
 - `src/lib/sync.ts` — data ingest from sumo-api (scores recalculated fully after every sync)
@@ -54,4 +55,4 @@ Retro 8-bit, inspired by Kunio-kun / Nekketsu series. Press Start 2P font. Tailw
 Always update `SPEC.md` when making changes to rules, features, or architecture.
 
 ## Auth model
-Users pick their name from a dropdown and enter a 4-digit PIN. No real auth — this is for a small trusted group. PINs stored plaintext in `config.json`.
+Email + password login (`<slug>@rikishi-rumble.com`) against the `accounts` table; bcrypt hashes, signed HS256 JWT session in an httpOnly cookie (`SESSION_SECRET` on Fly — app refuses to boot in prod without it). Signups gated behind `SIGNUPS_ENABLED` until Phase 5 invite codes. Deployed 2026-09-09. Legacy `users` table + config user list survive until the post-Aki cleanup commit.

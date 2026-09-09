@@ -174,6 +174,15 @@ byte-identical to before (snapshot test).
 
 ## Phase 4 — Replace the identity layer (must complete before Aki, Sep 13)
 
+**Status update 2026-09-09 (3): DEPLOYED to production** (PR #25, merge 9a76058).
+Decision: shipped 4 days before Aki rather than waiting for the Sep 28 gap — the
+group must visit this week to pick stables anyway, everyone keeps their password,
+and rollback is a single revert. Verified live: schema_version 2, 8 accounts with
+hashes and unique initials (backfilled via config-sync + restart), forged cookie
+401, gated signup 403, clean logs. Remaining before "done": all users log in
+once; post-Aki cleanup commit (drop `users` table, strip users/PINs from
+config.json incl. the volume copy, delete syncUsersFromConfig).
+
 **Status update 2026-09-09 (2):** code complete on `feat/phase4-email-auth`.
 Schema + migration, jose JWT sessions (HttpOnly; the old cookie was httpOnly:
 false — any user could forge admin from the console), login/logout/me/signup
