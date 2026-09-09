@@ -127,7 +127,7 @@ export default function Home() {
                   height={72}
                   priority
                   unoptimized
-                  className="relative z-[10000] h-[72px] w-[198px]"
+                  className="relative z-[10000] w-[198px] min-w-[99px] max-w-full h-auto"
                   style={{ imageRendering: "pixelated" }}
                 />
               </h1>
