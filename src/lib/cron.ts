@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { getActiveBashoId } from "./active-basho";
-import { syncAllDays, syncCurrentDay } from "./sync";
+import { syncAllDays, syncCurrentDay, syncMissingDays } from "./sync";
 
 let scheduled = false;
 
@@ -40,6 +40,19 @@ async function runCurrentDaySync() {
   }
 }
 
+async function runCatchupSync() {
+  try {
+    const bashoId = getActiveBashoId();
+    if (!bashoId) return;
+    const synced = await syncMissingDays(bashoId);
+    if (synced.length > 0) {
+      console.log(`[cron:catchup] Fetched missing bouts for day(s) ${synced.join(", ")}`);
+    }
+  } catch (error) {
+    console.error("[cron:catchup] Sync failed:", error);
+  }
+}
+
 export function startCronJobs() {
   if (scheduled) return;
   scheduled = true;
@@ -53,5 +66,9 @@ export function startCronJobs() {
   // Every 2 minutes between 4:00 PM and 6:00 PM JST — syncs only the current day
   cron.schedule("*/2 16-17 * * *", runCurrentDaySync, tokyo);
 
-  console.log("[cron] Scheduled sync jobs: 6:00/6:05/6:10 PM, 7:30 PM, 8:00 PM JST, and every 2 min 4-6 PM JST");
+  // Every 30 minutes — fetches today's/tomorrow's bouts if not yet in the DB
+  // (torikumi often publishes after the 8 PM full sync); no-ops once present
+  cron.schedule("15,45 * * * *", runCatchupSync, tokyo);
+
+  console.log("[cron] Scheduled sync jobs: 6:00/6:05/6:10 PM, 7:30 PM, 8:00 PM JST, every 2 min 4-6 PM JST, and half-hourly catch-up");
 }

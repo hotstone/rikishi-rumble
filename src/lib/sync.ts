@@ -164,6 +164,36 @@ export async function syncCurrentDay(
   return { day, ...result };
 }
 
+/**
+ * Catch-up sync: fetches today's and tomorrow's bouts if they aren't in the
+ * DB yet (e.g. the torikumi published after the evening full syncs). No-ops
+ * without an API call once both days are present, so it's safe to run often.
+ */
+export async function syncMissingDays(bashoId: string): Promise<number[]> {
+  const db = getDb();
+  const basho = db
+    .prepare("SELECT start_date FROM basho WHERE id = ?")
+    .get(bashoId) as { start_date: string | null } | undefined;
+
+  const day = currentBashoDay(basho?.start_date || null);
+  const targets = [...new Set([day, day + 1])].filter((d) => d >= 1 && d <= 15);
+
+  const countBouts = db.prepare(
+    "SELECT COUNT(*) as c FROM bout_results WHERE basho_id = ? AND day = ?"
+  );
+
+  const synced: number[] = [];
+  for (const target of targets) {
+    const row = countBouts.get(bashoId, target) as { c: number };
+    if (row.c > 0) continue;
+    const result = await syncDay(bashoId, target);
+    if (result.bouts > 0) synced.push(target);
+  }
+
+  if (synced.length > 0) calculateScores(bashoId);
+  return synced;
+}
+
 export async function syncAllDays(
   bashoId: string
 ): Promise<{ synced: number; pending: number }> {
