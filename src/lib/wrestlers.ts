@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { loadRecords, type RikishiRecord } from "./records";
+import { compareRanks } from "./sumo-api";
 
 export interface WrestlerRow {
   id: number;
@@ -54,7 +55,7 @@ export function getWrestlers(
 
       const filtered = tier !== null ? wrestlers.filter((w) => w.tier === tier) : wrestlers;
 
-      filtered.sort((a, b) => a.tier - b.tier || a.rank.localeCompare(b.rank));
+      filtered.sort((a, b) => a.tier - b.tier || compareRanks(a.rank, b.rank));
 
       return filtered;
     }
@@ -69,8 +70,8 @@ export function getWrestlers(
     params.push(tier);
   }
 
-  query += " ORDER BY tier, rank";
-
   const rows = db.prepare(query).all(...params) as CacheRow[];
-  return rows.map((w) => withRecord(w, records));
+  return rows
+    .map((w) => withRecord(w, records))
+    .sort((a, b) => a.tier - b.tier || compareRanks(a.rank, b.rank));
 }

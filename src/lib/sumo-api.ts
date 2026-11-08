@@ -102,6 +102,20 @@ export function shortRank(rank: string): string {
   return short;
 }
 
+// Banzuke order of the bases we know; unknown ranks sort last
+const BASE_ORDER: Record<string, number> = { Y: 0, O: 1, S: 2, K: 3, M: 4, J: 5 };
+
+// Banzuke comparator: base (Y > O > S > K > M > J), then number ascending,
+// then East before West ("e" < "w" and "East" < "West" both sort correctly)
+export function compareRanks(a: string, b: string): number {
+  const ra = parseRank(a);
+  const rb = parseRank(b);
+  const baseDiff = (BASE_ORDER[ra.base] ?? 99) - (BASE_ORDER[rb.base] ?? 99);
+  if (baseDiff !== 0) return baseDiff;
+  if (ra.number !== rb.number) return ra.number - rb.number;
+  return a.localeCompare(b);
+}
+
 export function isYokozuna(rank: string): boolean {
   return parseRank(rank).base === "Y";
 }

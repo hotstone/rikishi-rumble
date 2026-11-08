@@ -3,6 +3,7 @@ import {
   parseRank,
   getRankTier,
   shortRank,
+  compareRanks,
   isYokozuna,
   isMaegashira,
 } from "@/lib/sumo-api";
@@ -86,5 +87,26 @@ describe("isYokozuna / isMaegashira", () => {
     expect(isMaegashira("Maegashira 5 West")).toBe(true);
     expect(isMaegashira("M5w")).toBe(true);
     expect(isMaegashira("Komusubi 1 East")).toBe(false);
+  });
+});
+
+describe("compareRanks", () => {
+  it("sorts rank numbers numerically, not alphabetically", () => {
+    const sorted = ["M10e", "M8w", "M11e", "M9e", "M12w"].sort(compareRanks);
+    expect(sorted).toEqual(["M8w", "M9e", "M10e", "M11e", "M12w"]);
+  });
+
+  it("orders bases by banzuke, not alphabet", () => {
+    const sorted = ["J1e", "M1e", "K1e", "S1e", "O1e", "Y1e"].sort(compareRanks);
+    expect(sorted).toEqual(["Y1e", "O1e", "S1e", "K1e", "M1e", "J1e"]);
+  });
+
+  it("puts East before West at the same rank", () => {
+    expect(compareRanks("M5e", "M5w")).toBeLessThan(0);
+  });
+
+  it("sorts unknown ranks last", () => {
+    const sorted = ["Banzuke-gai", "M14e"].sort(compareRanks);
+    expect(sorted).toEqual(["M14e", "Banzuke-gai"]);
   });
 });
