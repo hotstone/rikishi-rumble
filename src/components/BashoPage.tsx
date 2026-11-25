@@ -231,9 +231,7 @@ function WrestlerBox({
                   className={`font-pixel inline-flex items-center justify-center h-4 px-0.5 border ${
                     isMe
                       ? "border-retro-yellow text-retro-yellow bg-retro-yellow/20"
-                      : isWinner
-                        ? "border-retro-yellow/60 text-retro-yellow bg-retro-yellow/10"
-                        : "border-gray-600 text-gray-500 bg-transparent"
+                      : "border-gray-600 text-gray-500 bg-transparent"
                   }`}
                   style={{ fontSize: "7px" }}
                 >
